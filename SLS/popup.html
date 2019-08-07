@@ -1,0 +1,29 @@
+<!DOCTYPE html">
+<html>
+<body style="width: 225px;">
+  Go to the
+  <a href="http://steamcommunity.com/market/" target="_blank">market page</a>
+  and
+  <button id="scanButton">start scan</button>
+  <input type="checkbox" id="autoScanOrders" name="autoScanOrders" unchecked />
+  <label for="autoScanOrders">Autocheck every (min.):</label>
+  <input type="number" id="autoScanOrdersDelay" min="1" max="999" value="20" />
+
+  <p></p>
+
+  <b>Scan options:</b><br />
+  <input type="checkbox" id="cancelHighOrders" name="cancelHighOrders" unchecked />
+  <label for="cancelHighOrders">Cancel high orders</label><br />
+  <input type="checkbox" id="cancelLowOrders" name="cancelLowOrders" unchecked />
+  <label for="cancelLowOrders">Cancel low orders</label><br />
+
+  <p></p>
+
+  <b>Style options:</b><br />
+  <input type="checkbox" id="showMoreOrders" name="showMoreOrders" checked />
+  <label for="showMoreOrders">Show more buy orders:</label>
+  <input type="number" id="showMoreOrdersQnt" min="1" max="999" value="20" /><br />
+
+  <script type="text/javascript" src="popup.js"></script>
+</body>
+</html>

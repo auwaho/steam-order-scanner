@@ -1,0 +1,37 @@
+{
+  "manifest_version": 2,
+  "name": "Steam Listings Scanner",
+  "short_name": "SLS",
+  "description": "This extension analyze your Steam Community Market sell listings and buy orders.",
+  "version": "1.0.1",
+  "permissions": [
+    "*://*/*",
+    "storage",
+    "activeTab",
+    "tabs",
+    "*://steamcommunity.com/*",
+    "*://localhost/*"
+  ],
+  "browser_action": {
+    "default_icon": "icon.png",
+    "default_popup": "popup.html"
+  },
+  "icons": {
+    "48": "icon.png"
+  },
+  "background": {
+    "scripts": ["jquery-3.3.1.min.js", "background.js"]
+  },
+  "content_scripts": [
+    {
+      "matches": ["*://steamcommunity.com/market/listings/*"],
+      "js": ["jquery-3.3.1.min.js", "styles.js"],
+      "run_at": "document_end"
+    },
+    {
+      "matches": ["*://steamcommunity.com/market/"],
+      "js": ["jquery-3.3.1.min.js"],
+      "run_at": "document_end"
+    }
+  ]
+}
