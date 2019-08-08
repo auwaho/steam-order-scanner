@@ -27,10 +27,9 @@ chrome.storage.sync.get(['cancelHighOrdersSLS'], function (result) {
 	});
 });
 
-//test
 //основная ф-я скана
 async function checkOrders() {
-	
+
 	var checkedList = "";
 
 	for (order of orderList) {
@@ -72,20 +71,18 @@ async function checkOrders() {
 					sessionid: getSessionId,
 					buy_orderid
 				});
-
 				await new Promise(done => setTimeout(() => done(), 1000)); // короткая пауза после удаления ордера
-				checkedList += (`<a href="${orderHref}" target="_blank">${orderHash}</a></br>`);
 			}
 
+			checkedList += `<a href="${orderHref}" target="_blank">${orderHash}</a></br>`;
 			order.style.backgroundColor = "#4C471C"; //меняем цвет ордера на оранжевый 
 
 		} else {
-
 			order.style.backgroundColor = "#1C4C1C"; //меняем цвет ордера на зеленый
 			//order.style.backgroundImage = "linear-gradient(to right, #1C4C1C, #1b2838)"; //меняем цвет ордера на красный
 		}
 	}
-	
+
 	var slsWindow = window.open();
 	slsWindow.document.write(checkedList);
 	slsWindow.document.title = "Bad orders";
