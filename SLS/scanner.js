@@ -27,7 +27,7 @@ chrome.storage.sync.get(['cancelHighOrdersSLS'], function (result) {
 	});
 });
 
-
+//test
 //основная ф-я скана
 async function checkOrders() {
 	
