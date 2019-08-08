@@ -37,6 +37,7 @@ async function checkOrders() {
 
 		var buy_orderid = order.id.substring(11);
 		var orderHref = order.getElementsByClassName('market_listing_item_name_link')[0].href;
+		var orderHash = order.getElementsByClassName('market_listing_item_name_link')[0].innerText;
 		var orderPrice = order.getElementsByClassName('market_listing_price')[0].innerText.replace(/\D+/g, '');
 		var sourceCode;
 		async function getSource() {
@@ -73,7 +74,7 @@ async function checkOrders() {
 				});
 
 				await new Promise(done => setTimeout(() => done(), 1000)); // короткая пауза после удаления ордера
-				checkedList += (`<a href="${orderHref}" target="_blank">${hash_name}</a></br>`);
+				checkedList += (`<a href="${orderHref}" target="_blank">${orderHash}</a></br>`);
 			}
 
 			order.style.backgroundColor = "#4C471C"; //меняем цвет ордера на оранжевый 
