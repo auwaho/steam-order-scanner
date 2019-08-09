@@ -42,7 +42,7 @@ async function checkOrders() {
 		async function getSource() {
 			sourceCode = await httpGet(orderHref);
 		}
-		await retryOnFail(6, 10000, getSource);
+		await retryOnFail(8, 15000, getSource);
 
 		var tenPrices = getFromBetween.get(sourceCode, '<span class="market_listing_price market_listing_price_without_fee">', '</span>').map(s => s.replace(/\D+/g, '') * 1).filter(Number);
 		var steamPrice = tenPrices.reduce((a, b) => a + b, 0) / tenPrices.length;
@@ -61,6 +61,7 @@ async function checkOrders() {
 			}
 
 			order.style.backgroundColor = "#4C1C1C"; //меняем цвет ордера на красный
+			checkedList += `<a href="${orderHref}" target="_blank">${orderHash}</a></br>`;
 
 		} else if (orderPrice < steamPrice * 0.75) {
 
@@ -74,7 +75,6 @@ async function checkOrders() {
 				await new Promise(done => setTimeout(() => done(), 1000)); // короткая пауза после удаления ордера
 			}
 
-			checkedList += `<a href="${orderHref}" target="_blank">${orderHash}</a></br>`;
 			order.style.backgroundColor = "#4C471C"; //меняем цвет ордера на оранжевый 
 
 		} else {
@@ -117,7 +117,7 @@ function httpGet(url) {
 		};
 		xhr.onerror = function () {
 			reject(new Error("Network Error"));
-			alert("Ошибка подключения");
+			alert("Connection error!");
 		};
 		xhr.send();
 	});
@@ -141,17 +141,10 @@ var getFromBetween = {
 		this.string = this.string.replace(removal, "");
 	},
 	getAllResults: function (sub1, sub2) {
-		// first check to see if we do have both substrings
 		if (this.string.indexOf(sub1) < 0 || this.string.indexOf(sub2) < 0) return;
-
-		// find one result
 		var result = this.getFromBetween(sub1, sub2);
-		// push it to the results array
 		this.results.push(result);
-		// remove the most recently found one from the string
 		this.removeFromBetween(sub1, sub2);
-
-		// if there's more substrings
 		if (this.string.indexOf(sub1) > -1 && this.string.indexOf(sub2) > -1) {
 			this.getAllResults(sub1, sub2);
 		} else return;
@@ -167,8 +160,11 @@ var getFromBetween = {
 //ф-я повторений
 async function retryOnFail(attempts, delay, fn) {
 	return await fn().catch(async function (err) {
+		if (attempts == 1) {
+			alert("Wait, too many requests!");
+		}
 		if (attempts <= 0) {
-			alert("Ошибка!");
+			alert("Error! Scan stopped.");
 			throw err;
 		}
 		await new Promise(done => setTimeout(() => done(), delay));

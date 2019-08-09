@@ -1,49 +1,57 @@
 //дефолтные настройки
-chrome.storage.sync.get(["cancelHighOrdersSLS"], function(result) {
+chrome.storage.sync.get(["cancelHighOrdersSLS"], function (result) {
   if (typeof result.cancelHighOrdersSLS == "undefined") {
-    chrome.storage.sync.set({ cancelHighOrdersSLS: false });
+    chrome.storage.sync.set({
+      cancelHighOrdersSLS: false
+    });
   }
 });
-chrome.storage.sync.get(["cancelLowOrdersSLS"], function(result) {
+chrome.storage.sync.get(["cancelLowOrdersSLS"], function (result) {
   if (typeof result.cancelLowOrdersSLS == "undefined") {
-    chrome.storage.sync.set({ cancelLowOrdersSLS: false });
+    chrome.storage.sync.set({
+      cancelLowOrdersSLS: false
+    });
   }
 });
-chrome.storage.sync.get(["showMoreOrdersSLS"], function(result) {
+chrome.storage.sync.get(["showMoreOrdersSLS"], function (result) {
   if (typeof result.showMoreOrdersSLS == "undefined") {
-    chrome.storage.sync.set({ showMoreOrdersSLS: true });
+    chrome.storage.sync.set({
+      showMoreOrdersSLS: true
+    });
   }
 });
-chrome.storage.sync.get(["showMoreOrdersQntSLS"], function(result) {
+chrome.storage.sync.get(["showMoreOrdersQntSLS"], function (result) {
   if (typeof result.showMoreOrdersQntSLS == "undefined") {
-    chrome.storage.sync.set({ showMoreOrdersQntSLS: 20 });
+    chrome.storage.sync.set({
+      showMoreOrdersQntSLS: 20
+    });
   }
 });
-chrome.storage.sync.get(["autoScanOrdersSLS"], function(result) {
+chrome.storage.sync.get(["autoScanOrdersSLS"], function (result) {
   if (typeof result.autoScanOrdersSLS == "undefined") {
-    chrome.storage.sync.set({ autoScanOrdersSLS: false });
+    chrome.storage.sync.set({
+      autoScanOrdersSLS: false
+    });
   }
 });
-chrome.storage.sync.get(["autoScanOrdersDelaySLS"], function(result) {
+chrome.storage.sync.get(["autoScanOrdersDelaySLS"], function (result) {
   if (typeof result.autoScanOrdersDelaySLS == "undefined") {
-    chrome.storage.sync.set({ autoScanOrdersDelaySLS: 20 });
+    chrome.storage.sync.set({
+      autoScanOrdersDelaySLS: 20
+    });
   }
 });
 
 //автоснятие неактуальных ордеров
-chrome.storage.sync.get(["autoScanOrdersSLS"], function(result) {
+chrome.storage.sync.get(["autoScanOrdersSLS"], function (result) {
   if (result.autoScanOrdersSLS == true) {
-    chrome.storage.sync.get(["autoScanOrdersDelaySLS"], function(result) {
+    chrome.storage.sync.get(["autoScanOrdersDelaySLS"], function (result) {
       var scanDelay = result.autoScanOrdersDelaySLS;
       startScan();
       var slsWindow = window.open();
 
       async function startScan() {
-        var myListings = JSON.parse(
-          await httpGet(
-            "https://steamcommunity.com/market/mylistings/?norender=1"
-          )
-        );
+        var myListings = JSON.parse(await httpGet("https://steamcommunity.com/market/mylistings/?norender=1"));
         var orderList = myListings.buy_orders;
 
         if (orderList.length > 0) {
@@ -60,16 +68,8 @@ chrome.storage.sync.get(["autoScanOrdersSLS"], function(result) {
             }
             await retryOnFail(6, 10000, getSource);
 
-            var tenPrices = getFromBetween
-              .get(
-                sourceCode,
-                '<span class="market_listing_price market_listing_price_without_fee">',
-                "</span>"
-              )
-              .map(s => s.replace(/\D+/g, "") * 1)
-              .filter(Number);
-            var steamPrice =
-              tenPrices.reduce((a, b) => a + b, 0) / tenPrices.length;
+            var tenPrices = getFromBetween.get(sourceCode, '<span class="market_listing_price market_listing_price_without_fee">', "</span>").map(s => s.replace(/\D+/g, "") * 1).filter(Number);
+            var steamPrice = tenPrices.reduce((a, b) => a + b, 0) / tenPrices.length;
 
             if (orderPrice > steamPrice) {
               // удаляем ордер если завышен
@@ -98,10 +98,10 @@ chrome.storage.sync.get(["autoScanOrdersSLS"], function(result) {
 
       //ф-я получения кода странницы
       function httpGet(url) {
-        return new Promise(function(resolve, reject) {
+        return new Promise(function (resolve, reject) {
           var xhr = new XMLHttpRequest();
           xhr.open("GET", url, true);
-          xhr.onload = function() {
+          xhr.onload = function () {
             if (this.status == 200) {
               resolve(this.response);
             } else {
@@ -110,7 +110,7 @@ chrome.storage.sync.get(["autoScanOrdersSLS"], function(result) {
               reject(error);
             }
           };
-          xhr.onerror = function() {
+          xhr.onerror = function () {
             reject(new Error("Network Error"));
             alert("Ошибка подключения");
           };
@@ -122,7 +122,7 @@ chrome.storage.sync.get(["autoScanOrdersSLS"], function(result) {
       var getFromBetween = {
         results: [],
         string: "",
-        getFromBetween: function(sub1, sub2) {
+        getFromBetween: function (sub1, sub2) {
           if (this.string.indexOf(sub1) < 0 || this.string.indexOf(sub2) < 0)
             return false;
           var SP = this.string.indexOf(sub1) + sub1.length;
@@ -131,13 +131,13 @@ chrome.storage.sync.get(["autoScanOrdersSLS"], function(result) {
           var TP = string1.length + string2.indexOf(sub2);
           return this.string.substring(SP, TP);
         },
-        removeFromBetween: function(sub1, sub2) {
+        removeFromBetween: function (sub1, sub2) {
           if (this.string.indexOf(sub1) < 0 || this.string.indexOf(sub2) < 0)
             return false;
           var removal = sub1 + this.getFromBetween(sub1, sub2) + sub2;
           this.string = this.string.replace(removal, "");
         },
-        getAllResults: function(sub1, sub2) {
+        getAllResults: function (sub1, sub2) {
           // first check to see if we do have both substrings
           if (this.string.indexOf(sub1) < 0 || this.string.indexOf(sub2) < 0)
             return;
@@ -157,7 +157,7 @@ chrome.storage.sync.get(["autoScanOrdersSLS"], function(result) {
             this.getAllResults(sub1, sub2);
           } else return;
         },
-        get: function(string, sub1, sub2) {
+        get: function (string, sub1, sub2) {
           this.results = [];
           this.string = string;
           this.getAllResults(sub1, sub2);
@@ -167,7 +167,7 @@ chrome.storage.sync.get(["autoScanOrdersSLS"], function(result) {
 
       //ф-я повторений
       async function retryOnFail(attempts, delay, fn) {
-        return await fn().catch(async function(err) {
+        return await fn().catch(async function (err) {
           if (attempts <= 0) {
             alert("Ошибка!");
             throw err;
