@@ -40,37 +40,40 @@ function httpGet(url) {
   });
 }
 
+
 //для страницы маркета
 if (window.location.href == window.location.protocol + "//steamcommunity.com/market/") {
   lookForOrders()
   async function lookForOrders() {
     await new Promise(done => setTimeout(() => done(), 10000));
-    try {
+    if ( document.body.contains(document.getElementsByClassName("my_market_header_active")[1]) == true){
       var qntDiv = document.getElementsByClassName("my_market_header_active")[1];
       qntDiv.style.cursor = "pointer";
       qntDiv.addEventListener("click", addQnt);
-    } catch {}
+    }
   }
 
   async function addQnt() {
-    var orderList = [];
-    var marketItems = document.getElementsByClassName("market_listing_row market_recent_listing_row");
-    for (marketItem of marketItems) {
-      if (marketItem.id.includes("mybuyorder_") && window.getComputedStyle(marketItem).display === "block") {
-        orderList.push(marketItem);
+    try {
+      var orderList = [];
+      var marketItems = document.getElementsByClassName("market_listing_row market_recent_listing_row");
+      for (marketItem of marketItems) {
+        if (marketItem.id.includes("mybuyorder_") && window.getComputedStyle(marketItem).display === "block") {
+          orderList.push(marketItem);
+        }
       }
-    }
-    if (orderList.length == 0) {
-      throw 'stop';
-    }
-    var myListingsJson = await httpGet(window.location.protocol + "//steamcommunity.com/market/mylistings/?norender=1");
-    var myListings = JSON.parse(myListingsJson);
-    for (let i = 0; i < orderList.length; i++) {
-      var currentQnt = orderList[i].getElementsByClassName("market_listing_right_cell market_listing_my_price market_listing_buyorder_qty")[0].childNodes[1];
-      var newQnt = myListings.buy_orders[i].quantity_remaining + " / " + myListings.buy_orders[i].quantity;
-      var newHtml = `<span class="market_listing_price">${newQnt}</span>`;
-      currentQnt.innerHTML = newHtml;
-    }
+      if (orderList.length == 0) {
+        throw 'stop';
+      }
+      var myListingsJson = await httpGet(window.location.protocol + "//steamcommunity.com/market/mylistings/?norender=1");
+      var myListings = JSON.parse(myListingsJson);
+      for (let i = 0; i < orderList.length; i++) {
+        var currentQnt = orderList[i].getElementsByClassName("market_listing_right_cell market_listing_my_price market_listing_buyorder_qty")[0].childNodes[1];
+        var newQnt = myListings.buy_orders[i].quantity_remaining + " / " + myListings.buy_orders[i].quantity;
+        var newHtml = `<span class="market_listing_price">${newQnt}</span>`;
+        currentQnt.innerHTML = newHtml;
+      }
+    } catch {}
   }
 }
 
@@ -100,8 +103,10 @@ if (window.location.href.indexOf(window.location.protocol + "//steamcommunity.co
 
       const source = document.documentElement.outerHTML;
       const item_nameid = source.extract("Market_LoadOrderSpread( ", " );");
-      const url = window.location.protocol + `//steamcommunity.com/market/itemordershistogram?country=USA&language=english&currency=1&two_factor=0&item_nameid=${item_nameid}`;
-      //const cunrrencies = JSON.parse('{"1": "$","2": "\u00a3","3": "\u20ac","4": "CHF","5": "p\u0443\u0431","6": "z\u0142","7": "R$","8": "\u00a5","9": "kr","10": "Rp","11": "RM","12": "P","13": "S$","14": "\u0e3f","15": "\u20ab","16": "\u20a9","17": "TL","18": "\u20b4","19": "Mex$","20": "CDN$","21": "A$","22": "NZ$","23": "\u00a5","24": "\u20b9","25": "CLP$","26": "S","27": "COL$","28": "R","29": "HK$","30": "NT$","31": "SR","32": "AED","34": "ARS$","35": "\u20aa","37": "\u20b8","38": "KD","39": "QR","40": "\u20a1","41": "$U"}');
+      const currency = source.extract('"wallet_currency":', ',') == '' ? 1 : source.extract('"wallet_currency":', ',');
+      const country = source.extract('var g_strCountryCode = "', '"');
+      const language = source.extract('var g_strLanguage = "', '"');
+      const url = window.location.protocol + `//steamcommunity.com/market/itemordershistogram?country=${country}&language=${language}&currency=${currency}&item_nameid=${item_nameid}`;
 
       var qntSumm = 0;
       var tableRows = `
@@ -124,7 +129,7 @@ if (window.location.href.indexOf(window.location.protocol + "//steamcommunity.co
           var qnt = (parsed.buy_order_graph[i] + "").extract(",", ",");
           var row = `
           <tr>
-            <td align="right" class="">$${parseFloat(prc).toFixed(2)}</td>
+            <td align="right" class="">${parsed.price_prefix}${parseFloat(prc).toFixed(2)}${parsed.price_suffix}</td>
             <td align="right">${qnt - qntSumm}</td>
           </tr>
         `;
