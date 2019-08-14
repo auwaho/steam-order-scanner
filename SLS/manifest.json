@@ -20,11 +20,12 @@
     "48": "icon.png"
   },
   "background": {
-    "scripts": ["jquery-3.3.1.min.js", "background.js"]
+    "scripts": ["jquery-3.3.1.min.js", "background.js"],
+    "persistent": true
   },
   "content_scripts": [{
     "matches": ["*://steamcommunity.com/market/", "*://steamcommunity.com/market/listings/*"],
-    "js": ["jquery-3.3.1.min.js", "market.js"],
+    "js": ["jquery-3.3.1.min.js", "reformer.js"],
     "run_at": "document_end"
   }]
 }

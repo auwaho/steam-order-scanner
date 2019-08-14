@@ -23,11 +23,21 @@ chrome.storage.sync.get(['cancelHighOrdersSLS'], function (result) {
 	cancelHigh = result.cancelHighOrdersSLS;
 	chrome.storage.sync.get(['cancelLowOrdersSLS'], function (result) {
 		cancelLow = result.cancelLowOrdersSLS;
-		checkOrders();
+		chrome.storage.sync.get(["autoScanOrdersSLS"], function (result) {
+			if (result.autoScanOrdersSLS == false) {
+				orderList[0].scrollIntoView({
+					block: 'center',
+					behavior: 'smooth'
+				});
+				checkOrders();
+			} else {
+				autoCheckOrders();
+			}
+		});
 	});
 });
 
-//основная ф-я скана
+//-------> ф-я скана <-------//
 async function checkOrders() {
 
 	var checkedList = "";
@@ -81,11 +91,53 @@ async function checkOrders() {
 			order.style.backgroundColor = "#1C4C1C"; //меняем цвет ордера на зеленый
 			//order.style.backgroundImage = "linear-gradient(to right, #1C4C1C, #1b2838)"; //меняем цвет ордера на красный
 		}
+		await new Promise(done => setTimeout(() => done(), 100));
 	}
 
 	var slsWindow = window.open();
 	slsWindow.document.write(checkedList);
 	slsWindow.document.title = "Bad orders";
+}
+
+//-------> ф-я автоскана <-------//
+async function autoCheckOrders() {
+
+	var slsWindow = window.open();
+	var myListings = JSON.parse(await httpGet("https://steamcommunity.com/market/mylistings/?norender=1"));
+	var orderList = myListings.buy_orders;
+
+	if (orderList.length > 0) {
+		for (order of orderList) {
+			var appid = order.appid;
+			var buy_orderid = order.buy_orderid;
+			var hash_name = order.hash_name;
+			var orderHref = `https://steamcommunity.com/market/listings/${appid}/${hash_name}`;
+			var orderPrice = order.price;
+			var sourceCode;
+			//alert(orderHref);
+			async function getSource() {
+				sourceCode = await httpGet(orderHref);
+			}
+			await retryOnFail(6, 10000, getSource);
+
+			var tenPrices = getFromBetween.get(sourceCode, '<span class="market_listing_price market_listing_price_without_fee">', "</span>").map(s => s.replace(/\D+/g, "") * 1).filter(Number);
+			var steamPrice = tenPrices.reduce((a, b) => a + b, 0) / tenPrices.length;
+
+			if (orderPrice > steamPrice) {
+				// удаляем ордер если завышен
+				$.post("//steamcommunity.com/market/cancelbuyorder/", {
+					sessionid: getSessionId,
+					buy_orderid
+				});
+
+				slsWindow.document.write(`<a href="${orderHref}" target="_blank">${hash_name}</a></br>`);
+				await new Promise(done => setTimeout(() => done(), 1000)); // короткая пауза после удаления ордера
+			}
+			await new Promise(done => setTimeout(() => done(), Math.floor(Math.random() * (+3000 - +1000)) + +1000));
+		}
+	}
+	slsWindow.document.write("--------------------------------------------</br>");
+	setTimeout(autoCheckOrders, scanDelay * 60000);
 }
 
 
@@ -122,6 +174,7 @@ function httpGet(url) {
 		xhr.send();
 	});
 }
+
 
 //ф-я нахождения строк между строк
 var getFromBetween = {

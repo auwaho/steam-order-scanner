@@ -41,12 +41,12 @@ function httpGet(url) {
 }
 
 
-//для страницы маркета
+//для основной страницы маркета
 if (window.location.href == window.location.protocol + "//steamcommunity.com/market/") {
   lookForOrders()
   async function lookForOrders() {
     await new Promise(done => setTimeout(() => done(), 10000));
-    if ( document.body.contains(document.getElementsByClassName("my_market_header_active")[1]) == true){
+    if (document.body.contains(document.getElementsByClassName("my_market_header_active")[1]) == true) {
       var qntDiv = document.getElementsByClassName("my_market_header_active")[1];
       qntDiv.style.cursor = "pointer";
       qntDiv.addEventListener("click", addQnt);
@@ -150,3 +150,15 @@ if (window.location.href.indexOf(window.location.protocol + "//steamcommunity.co
     }
   });
 }
+
+/*if (window.location.href == "chrome-extension://lekekhdkpekmbgpcanfldeekpjbdieic/page/index.html") {
+  var sthFooter = document.getElementsByClassName("footer-ln")[0];
+  var sthCheckSellBtn = document.createElement("i");
+  sthCheckSellBtn.innerHTML = "<i>Check sell</i>";
+  sthCheckSellBtn.className = "btn";
+  sthCheckSellBtn.style.marginLeft = "25px";
+  sthFooter.appendChild(sthCheckSellBtn);
+  sthCheckSellBtn.addEventListener("click", function () {
+    alert("Hello World!");
+  });
+}*/
