@@ -150,15 +150,3 @@ if (window.location.href.indexOf(window.location.protocol + "//steamcommunity.co
     }
   });
 }
-
-/*if (window.location.href == "chrome-extension://lekekhdkpekmbgpcanfldeekpjbdieic/page/index.html") {
-  var sthFooter = document.getElementsByClassName("footer-ln")[0];
-  var sthCheckSellBtn = document.createElement("i");
-  sthCheckSellBtn.innerHTML = "<i>Check sell</i>";
-  sthCheckSellBtn.className = "btn";
-  sthCheckSellBtn.style.marginLeft = "25px";
-  sthFooter.appendChild(sthCheckSellBtn);
-  sthCheckSellBtn.addEventListener("click", function () {
-    alert("Hello World!");
-  });
-}*/

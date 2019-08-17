@@ -25,9 +25,9 @@ chrome.storage.sync.get(["autoScanOrdersSLS"], function (result) {
 chrome.storage.sync.get(["autoScanOrdersDelaySLS"], function (result) {
   autoScanOrdersDelay.value = result.autoScanOrdersDelaySLS;
 });
-/*chrome.storage.sync.get(["scanButtonSLS"], function (result) {
+chrome.storage.sync.get(["scanButtonSLS"], function (result) {
   scanButton.innerText = result.scanButtonSLS;
-});*/
+});
 
 /////////////сохраняем данные по клику/////////////
 cancelHighOrders.addEventListener("change", event => {
@@ -84,23 +84,33 @@ autoScanOrdersDelay.addEventListener("change", () => {
     autoScanOrdersDelaySLS: autoScanOrdersDelay.value
   });
 });
-/*scanButton.addEventListener("click", () => {
+scanButton.addEventListener("click", () => {
   if (scanButton.innerText == "start scan") {
+    chrome.tabs.executeScript({
+      file: "scanner.js"
+    });
     scanButton.innerText = "stop scan";
     chrome.storage.sync.set({
       scanButtonSLS: scanButton.innerText
     });
   } else {
+    chrome.tabs.executeScript({
+      file: "scanner.js"
+    });
     scanButton.innerText = "start scan";
     chrome.storage.sync.set({
       scanButtonSLS: scanButton.innerText
     });
   }
-});*/
+});
 
-/////////////////////////////////////////////
-scanButton.addEventListener("click", () => {
-  chrome.tabs.executeScript({
-    file: "scanner.js"
-  });
+
+chrome.tabs.query({
+  'active': true,
+  'lastFocusedWindow': true
+}, function (tabs) {
+  if (tabs[0].url == "https://steamcommunity.com/market/") {
+    scanButton.disabled = false;
+    scanButton.style = "cursor:pointer";
+  }
 });

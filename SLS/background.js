@@ -41,10 +41,10 @@ chrome.storage.sync.get(["autoScanOrdersDelaySLS"], function (result) {
     });
   }
 });
-/*chrome.storage.sync.get(["scanButtonSLS"], function (result) {
+chrome.storage.sync.get(["scanButtonSLS"], function (result) {
   if (typeof result.scanButtonSLS == "undefined") {
     chrome.storage.sync.set({
       scanButtonSLS: "start scan"
     });
   }
-});*/
+});

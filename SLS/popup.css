@@ -1,0 +1,17 @@
+body {
+    background-color: rgb(25, 25, 25);
+    margin: 0px !important;
+    width: 225px;
+    border: 1px solid gold;
+    padding: 0px 10px 0px 10px;
+}
+
+label {
+    color: rgb(230, 230, 230);
+}
+
+input {
+    background-color: rgb(230, 230, 230);
+    color: black;
+    text-align: center;
+}

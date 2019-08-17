@@ -1,11 +1,7 @@
-if (document.URL != "https://steamcommunity.com/market/") {
-	alert("Go to the Steam Community Market page!");
-	throw 'stop';
-}
-
 var cancelHigh;
 var cancelLow;
 var orderList = [];
+var scanDelay;
 
 var marketItems = document.getElementsByClassName("market_listing_row market_recent_listing_row");
 for (marketItem of marketItems) {
@@ -16,23 +12,43 @@ for (marketItem of marketItems) {
 
 if (orderList.length == 0) {
 	alert("Looks like you have not buy orders or not logined!");
-	throw 'stop';
+	throw 'error: no orders or not logined.';
 }
+
+var myBuyOrders = document.getElementsByClassName("my_market_header_active")[1];
 
 chrome.storage.sync.get(['cancelHighOrdersSLS'], function (result) {
 	cancelHigh = result.cancelHighOrdersSLS;
 	chrome.storage.sync.get(['cancelLowOrdersSLS'], function (result) {
 		cancelLow = result.cancelLowOrdersSLS;
 		chrome.storage.sync.get(["autoScanOrdersSLS"], function (result) {
-			if (result.autoScanOrdersSLS == false) {
-				orderList[0].scrollIntoView({
-					block: 'center',
-					behavior: 'smooth'
-				});
-				checkOrders();
-			} else {
-				autoCheckOrders();
-			}
+			var autoScan = result.autoScanOrdersSLS;
+			chrome.storage.sync.get(["scanButtonSLS"], function (result) {
+				if (result.scanButtonSLS == "stop scan") {
+					if (autoScan == false) {
+						myBuyOrders.innerText = "My buy orders (scanning)";
+						orderList[0].scrollIntoView({
+							block: 'center',
+							behavior: 'smooth'
+						});
+						checkOrders();
+						onbeforeunload = function () {
+							return "";
+						};
+					} else {
+						chrome.storage.sync.get(["autoScanOrdersDelaySLS"], function (result) {
+							scanDelay = result.autoScanOrdersDelaySLS;
+							myBuyOrders.innerText = "My buy orders (scanning)";
+							autoCheckOrders();
+							onbeforeunload = function () {
+								return "";
+							};
+						})
+					}
+				} else {
+					myBuyOrders.innerText = "My buy orders (scan stopped)";
+				}
+			})
 		});
 	});
 });
@@ -40,9 +56,16 @@ chrome.storage.sync.get(['cancelHighOrdersSLS'], function (result) {
 //-------> ф-я скана <-------//
 async function checkOrders() {
 
-	var checkedList = "";
+	console.log('%c ▼ single scan start ▼ ', 'background: #000000; color: #FFD700');
 
 	for (order of orderList) {
+		order.style.backgroundColor = "rgba(0, 0, 0, 0.2)";
+	}
+	for (order of orderList) {
+
+		if (myBuyOrders.innerText == "My buy orders (scan stopped)") {
+			break;
+		}
 
 		var buy_orderid = order.id.substring(11);
 		var orderHref = order.getElementsByClassName('market_listing_item_name_link')[0].href;
@@ -67,11 +90,11 @@ async function checkOrders() {
 					buy_orderid
 				});
 
-				await new Promise(done => setTimeout(() => done(), 1000)); // короткая пауза после удаления ордера
+				await new Promise(done => setTimeout(() => done(), 1000));
 			}
 
 			order.style.backgroundColor = "#4C1C1C"; //меняем цвет ордера на красный
-			checkedList += `<a href="${orderHref}" target="_blank">${orderHash}</a></br>`;
+			console.log(`${orderHref} | price: ${orderPrice / 100}`);
 
 		} else if (orderPrice < steamPrice * 0.75) {
 
@@ -82,32 +105,38 @@ async function checkOrders() {
 					sessionid: getSessionId,
 					buy_orderid
 				});
-				await new Promise(done => setTimeout(() => done(), 1000)); // короткая пауза после удаления ордера
+				await new Promise(done => setTimeout(() => done(), 1000));
 			}
 
-			order.style.backgroundColor = "#4C471C"; //меняем цвет ордера на оранжевый 
+			order.style.backgroundColor = "#4C471C";
 
 		} else {
-			order.style.backgroundColor = "#1C4C1C"; //меняем цвет ордера на зеленый
-			//order.style.backgroundImage = "linear-gradient(to right, #1C4C1C, #1b2838)"; //меняем цвет ордера на красный
+			order.style.backgroundColor = "#1C4C1C";
 		}
 		await new Promise(done => setTimeout(() => done(), 100));
 	}
 
-	var slsWindow = window.open();
-	slsWindow.document.write(checkedList);
-	slsWindow.document.title = "Bad orders";
+	console.log('%c ■  single scan end  ■ ', 'background: #000000; color: #FFD700');
+	chrome.storage.sync.set({
+		scanButtonSLS: "start scan"
+	});
 }
 
 //-------> ф-я автоскана <-------//
 async function autoCheckOrders() {
 
-	var slsWindow = window.open();
+	console.log('%c ▼ auto scan start ▼ ', 'background: #000000; color: #FFD700');
 	var myListings = JSON.parse(await httpGet("https://steamcommunity.com/market/mylistings/?norender=1"));
 	var orderList = myListings.buy_orders;
 
 	if (orderList.length > 0) {
 		for (order of orderList) {
+
+			if (myBuyOrders.innerText == "My buy orders (scan stopped)") {
+				console.log('%c ■  auto scan end  ■ ', 'background: #000000; color: #FFD700');
+				return;
+			}
+
 			var appid = order.appid;
 			var buy_orderid = order.buy_orderid;
 			var hash_name = order.hash_name;
@@ -118,7 +147,7 @@ async function autoCheckOrders() {
 			async function getSource() {
 				sourceCode = await httpGet(orderHref);
 			}
-			await retryOnFail(6, 10000, getSource);
+			await retryOnFail(6, 30000, getSource);
 
 			var tenPrices = getFromBetween.get(sourceCode, '<span class="market_listing_price market_listing_price_without_fee">', "</span>").map(s => s.replace(/\D+/g, "") * 1).filter(Number);
 			var steamPrice = tenPrices.reduce((a, b) => a + b, 0) / tenPrices.length;
@@ -130,13 +159,13 @@ async function autoCheckOrders() {
 					buy_orderid
 				});
 
-				slsWindow.document.write(`<a href="${orderHref}" target="_blank">${hash_name}</a></br>`);
-				await new Promise(done => setTimeout(() => done(), 1000)); // короткая пауза после удаления ордера
+				console.log(`${orderHref} | price: ${orderPrice / 100}`);
+				await new Promise(done => setTimeout(() => done(), 1000));
 			}
-			await new Promise(done => setTimeout(() => done(), Math.floor(Math.random() * (+3000 - +1000)) + +1000));
+			await new Promise(done => setTimeout(() => done(), Math.floor(Math.random() * (+2000 - +1000)) + +1000));
 		}
 	}
-	slsWindow.document.write("--------------------------------------------</br>");
+
 	setTimeout(autoCheckOrders, scanDelay * 60000);
 }
 
@@ -213,11 +242,11 @@ var getFromBetween = {
 //ф-я повторений
 async function retryOnFail(attempts, delay, fn) {
 	return await fn().catch(async function (err) {
-		if (attempts == 1) {
-			alert("Wait, too many requests!");
-		}
 		if (attempts <= 0) {
 			alert("Error! Scan stopped.");
+			chrome.storage.sync.set({
+				scanButtonSLS: "start scan"
+			});
 			throw err;
 		}
 		await new Promise(done => setTimeout(() => done(), delay));
