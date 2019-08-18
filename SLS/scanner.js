@@ -1,7 +1,7 @@
 var cancelHigh;
 var cancelLow;
-var orderList = [];
 var scanDelay;
+var orderList = [];
 
 var marketItems = document.getElementsByClassName("market_listing_row market_recent_listing_row");
 for (marketItem of marketItems) {
@@ -69,13 +69,12 @@ async function checkOrders() {
 
 		var buy_orderid = order.id.substring(11);
 		var orderHref = order.getElementsByClassName('market_listing_item_name_link')[0].href;
-		var orderHash = order.getElementsByClassName('market_listing_item_name_link')[0].innerText;
 		var orderPrice = order.getElementsByClassName('market_listing_price')[0].innerText.replace(/\D+/g, '');
 		var sourceCode;
 		async function getSource() {
 			sourceCode = await httpGet(orderHref);
 		}
-		await retryOnFail(8, 15000, getSource);
+		await retryOnFailForSingle(4, 15000, getSource);
 
 		var tenPrices = getFromBetween.get(sourceCode, '<span class="market_listing_price market_listing_price_without_fee">', '</span>').map(s => s.replace(/\D+/g, '') * 1).filter(Number);
 		var steamPrice = tenPrices.reduce((a, b) => a + b, 0) / tenPrices.length;
@@ -84,13 +83,8 @@ async function checkOrders() {
 
 			// удаляем ордер если завышен
 			if (cancelHigh == true) {
-
-				$.post('//steamcommunity.com/market/cancelbuyorder/', {
-					sessionid: getSessionId,
-					buy_orderid
-				});
-
-				await new Promise(done => setTimeout(() => done(), 1000));
+				httpPost('//steamcommunity.com/market/cancelbuyorder/', getSessionId(), buy_orderid);
+				await new Promise(done => setTimeout(() => done(), 500));
 			}
 
 			order.style.backgroundColor = "#4C1C1C"; //меняем цвет ордера на красный
@@ -100,12 +94,8 @@ async function checkOrders() {
 
 			// удаляем ордер если занижен
 			if (cancelLow == true) {
-
-				$.post('//steamcommunity.com/market/cancelbuyorder/', {
-					sessionid: getSessionId,
-					buy_orderid
-				});
-				await new Promise(done => setTimeout(() => done(), 1000));
+				httpPost('//steamcommunity.com/market/cancelbuyorder/', getSessionId(), buy_orderid);
+				await new Promise(done => setTimeout(() => done(), 500));
 			}
 
 			order.style.backgroundColor = "#4C471C";
@@ -126,7 +116,7 @@ async function checkOrders() {
 async function autoCheckOrders() {
 
 	console.log('%c ▼ auto scan start ▼ ', 'background: #000000; color: #FFD700');
-	var myListings = JSON.parse(await httpGet("https://steamcommunity.com/market/mylistings/?norender=1"));
+	var myListings = JSON.parse(await httpGet("//steamcommunity.com/market/mylistings/?norender=1"));
 	var orderList = myListings.buy_orders;
 
 	if (orderList.length > 0) {
@@ -140,27 +130,22 @@ async function autoCheckOrders() {
 			var appid = order.appid;
 			var buy_orderid = order.buy_orderid;
 			var hash_name = order.hash_name;
-			var orderHref = `https://steamcommunity.com/market/listings/${appid}/${hash_name}`;
+			var orderHref = `//steamcommunity.com/market/listings/${appid}/${hash_name}`;
 			var orderPrice = order.price;
 			var sourceCode;
-			//alert(orderHref);
 			async function getSource() {
 				sourceCode = await httpGet(orderHref);
 			}
-			await retryOnFail(6, 30000, getSource);
+			await retryOnFailForAuto(8, 30000, 15, getSource);
 
 			var tenPrices = getFromBetween.get(sourceCode, '<span class="market_listing_price market_listing_price_without_fee">', "</span>").map(s => s.replace(/\D+/g, "") * 1).filter(Number);
 			var steamPrice = tenPrices.reduce((a, b) => a + b, 0) / tenPrices.length;
 
 			if (orderPrice > steamPrice) {
 				// удаляем ордер если завышен
-				$.post("//steamcommunity.com/market/cancelbuyorder/", {
-					sessionid: getSessionId,
-					buy_orderid
-				});
-
+				httpPost('//steamcommunity.com/market/cancelbuyorder/', getSessionId(), buy_orderid);
 				console.log(`${orderHref} | price: ${orderPrice / 100}`);
-				await new Promise(done => setTimeout(() => done(), 1000));
+				await new Promise(done => setTimeout(() => done(), 500));
 			}
 			await new Promise(done => setTimeout(() => done(), Math.floor(Math.random() * (+2000 - +1000)) + +1000));
 		}
@@ -204,6 +189,30 @@ function httpGet(url) {
 	});
 }
 
+//ф-я отправления Post-запроса
+function httpPost(url, sessionid, buy_orderid) {
+	return new Promise(function (resolve, reject) {
+		var xhr = new XMLHttpRequest();
+		var params = `sessionid=${sessionid}&buy_orderid=${buy_orderid}`;
+		xhr.open('POST', url, true);
+		xhr.setRequestHeader('Content-type', 'application/x-www-form-urlencoded');
+		xhr.onreadystatechange = function () {
+			if (this.status == 200) {
+				resolve(this.response);
+			} else {
+				var error = new Error(this.statusText);
+				error.code = this.status;
+				reject(error);
+			}
+		}
+		xhr.onerror = function () {
+			reject(new Error("Network Error"));
+			alert("Connection error!");
+		};
+		xhr.send(params);
+	});
+}
+
 
 //ф-я нахождения строк между строк
 var getFromBetween = {
@@ -240,16 +249,25 @@ var getFromBetween = {
 };
 
 //ф-я повторений
-async function retryOnFail(attempts, delay, fn) {
-	return await fn().catch(async function (err) {
-		if (attempts <= 0) {
-			alert("Error! Scan stopped.");
-			chrome.storage.sync.set({
-				scanButtonSLS: "start scan"
-			});
-			throw err;
+async function retryOnFailForSingle(attempts, delay, fn) {
+	var tries = attempts;
+	return await fn().catch(function () {
+		if (tries <= 0) {
+			alert("Can't load item page, check Market for microbans and then press 'OK'");
+			return retryOnFailForSingle(attempts, delay, fn);
 		}
-		await new Promise(done => setTimeout(() => done(), delay));
-		return retryOnFail(attempts - 1, delay, fn);
+		return setTimeout(retryOnFailForSingle(tries - 1, delay, fn), delay);
+	});
+}
+
+//ф-я повторений
+async function retryOnFailForAuto(attempts, delay, pause, fn) {
+	var tries = attempts;
+	return await fn().catch(function () {
+		if (tries <= 0) {
+			console.log("Error! Can't load item page.");
+			return setTimeout(retryOnFailForAuto(attempts, delay, fn), pause * 60000);
+		}
+		return setTimeout(retryOnFailForAuto(tries - 1, delay, fn), delay);
 	});
 }

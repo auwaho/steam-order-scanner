@@ -98,15 +98,15 @@ if (window.location.href.indexOf(window.location.protocol + "//steamcommunity.co
         showQnt = result.showMoreOrdersQntSLS;
       });
 
-      $("#market_buyorder_info_show_details").hide();
-      $("#market_buyorder_info_details").show();
+      document.getElementById("market_buyorder_info_show_details").style.display = 'none';
+      document.getElementById("market_buyorder_info_details").style.display = 'block';
 
       const source = document.documentElement.outerHTML;
       const item_nameid = source.extract("Market_LoadOrderSpread( ", " );");
       const currency = source.extract('"wallet_currency":', ',') == '' ? 1 : source.extract('"wallet_currency":', ',');
       const country = source.extract('var g_strCountryCode = "', '"');
       const language = source.extract('var g_strLanguage = "', '"');
-      const url = window.location.protocol + `//steamcommunity.com/market/itemordershistogram?country=${country}&language=${language}&currency=${currency}&item_nameid=${item_nameid}`;
+      const url = `//steamcommunity.com/market/itemordershistogram?country=${country}&language=${language}&currency=${currency}&item_nameid=${item_nameid}`;
 
       var qntSumm = 0;
       var tableRows = `
