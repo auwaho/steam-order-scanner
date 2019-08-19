@@ -86,7 +86,7 @@ async function checkOrders() {
 		async function getSource() {
 			sourceCode = await httpGet(orderHref);
 		}
-		await retryOnFailForSingle(4, 15000, getSource);
+		await retryOnFailForSingle(4, 30000, getSource);
 
 		if (stopScan == true) {
 			break;
@@ -122,6 +122,7 @@ async function checkOrders() {
 		} else {
 			order.style.backgroundColor = "#1C4C1C";
 		}
+		await new Promise(done => setTimeout(() => done(), 100));
 	}
 
 	console.log('%c ■  single scan end  ■ ', 'background: #000000; color: #FFD700');
@@ -149,7 +150,7 @@ async function autoCheckOrders() {
 			async function getSource() {
 				sourceCode = await httpGet(orderHref);
 			}
-			await retryOnFailForAuto(8, 30000, 15, getSource);
+			await retryOnFailForAuto(4, 30000, 10, getSource);
 
 			if (stopScan == true) {
 				console.log('%c ■  auto scan end  ■ ', 'background: #000000; color: #FFD700');

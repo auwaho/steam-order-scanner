@@ -45,10 +45,11 @@ function httpGet(url) {
 if (window.location.href == window.location.protocol + "//steamcommunity.com/market/") {
   lookForOrders()
   async function lookForOrders() {
-    await new Promise(done => setTimeout(() => done(), 10000));
-    if (document.body.contains(document.getElementsByClassName("my_market_header_active")[1]) == true) {
-      var qntDiv = document.getElementsByClassName("my_market_header_active")[1];
+    await new Promise(done => setTimeout(() => done(), 5000));
+    if (document.body.contains(document.getElementById('my_market_buylistings_number')) == true) {
+      var qntDiv = document.getElementById('my_market_buylistings_number');
       qntDiv.style.cursor = "pointer";
+      qntDiv.title = "Check remaining orders";
       qntDiv.addEventListener("click", addQnt);
     }
   }
