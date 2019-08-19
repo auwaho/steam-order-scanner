@@ -4,6 +4,15 @@ var scanDelay;
 var orderList = [];
 var stopScan = false;
 
+onbeforeunload = function () {
+	return "";
+};
+onunload = function () {
+	chrome.storage.sync.set({
+		scanButtonSLS: "start scan"
+	});
+};
+
 var marketItems = document.getElementsByClassName("market_listing_row market_recent_listing_row");
 for (marketItem of marketItems) {
 	if (marketItem.id.includes("mybuyorder_") && window.getComputedStyle(marketItem).display === "block") {
@@ -33,9 +42,6 @@ chrome.storage.sync.get(['cancelHighOrdersSLS'], function (result) {
 							behavior: 'smooth'
 						});
 						checkOrders();
-						onbeforeunload = function () {
-							return "";
-						};
 						(async function listenForStop() {
 							if (myBuyOrdersEl[myBuyOrdersEl.length - 1].innerText == "My buy orders (scan stopped)") {
 								stopScan = true;
@@ -48,9 +54,6 @@ chrome.storage.sync.get(['cancelHighOrdersSLS'], function (result) {
 							scanDelay = result.autoScanOrdersDelaySLS;
 							myBuyOrdersEl[myBuyOrdersEl.length - 1].innerText = "My buy orders (scanning)";
 							autoCheckOrders();
-							onbeforeunload = function () {
-								return "";
-							};
 						});
 						(async function listenForStop() {
 							if (myBuyOrdersEl[myBuyOrdersEl.length - 1].innerText == "My buy orders (scan stopped)") {

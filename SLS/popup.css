@@ -1,7 +1,7 @@
 body {
     background-color: rgb(20, 20, 20);
     margin: 0px !important;
-    width: 225px;
+    width: 227px;
     border: 1px solid gold;
     padding: 0px 10px 0px 10px;
 }
@@ -14,4 +14,14 @@ input {
     background-color: rgb(230, 230, 230);
     color: black;
     text-align: center;
+}
+
+.btn {
+    float: right; 
+    width: 74px;
+}
+
+.txtBx {
+    float: right;
+    width: 70px;
 }
