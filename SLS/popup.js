@@ -102,8 +102,11 @@ scanButton.addEventListener("click", () => {
       scanButtonSLS: scanButton.innerText
     });
   }
+  scanButton.disabled = true;
+  setTimeout(() => {
+    scanButton.disabled = false;
+  }, 1500);
 });
-
 
 chrome.tabs.query({
   'active': true,
@@ -111,6 +114,5 @@ chrome.tabs.query({
 }, function (tabs) {
   if (tabs[0].url == "https://steamcommunity.com/market/") {
     scanButton.disabled = false;
-    scanButton.style = "cursor:pointer";
   }
 });
