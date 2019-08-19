@@ -2,6 +2,7 @@ var cancelHigh;
 var cancelLow;
 var scanDelay;
 var orderList = [];
+var stopScan = false;
 
 var marketItems = document.getElementsByClassName("market_listing_row market_recent_listing_row");
 for (marketItem of marketItems) {
@@ -15,7 +16,7 @@ if (orderList.length == 0) {
 	throw 'error: no orders or not logined.';
 }
 
-var myBuyOrders = document.getElementsByClassName("my_market_header_active")[1];
+var myBuyOrdersEl = document.getElementsByClassName("my_market_header_active");
 
 chrome.storage.sync.get(['cancelHighOrdersSLS'], function (result) {
 	cancelHigh = result.cancelHighOrdersSLS;
@@ -26,7 +27,7 @@ chrome.storage.sync.get(['cancelHighOrdersSLS'], function (result) {
 			chrome.storage.sync.get(["scanButtonSLS"], function (result) {
 				if (result.scanButtonSLS == "stop scan") {
 					if (autoScan == false) {
-						myBuyOrders.innerText = "My buy orders (scanning)";
+						myBuyOrdersEl[myBuyOrdersEl.length - 1].innerText = "My buy orders (scanning)";
 						orderList[0].scrollIntoView({
 							block: 'center',
 							behavior: 'smooth'
@@ -35,23 +36,38 @@ chrome.storage.sync.get(['cancelHighOrdersSLS'], function (result) {
 						onbeforeunload = function () {
 							return "";
 						};
+						(async function listenForStop() {
+							if (myBuyOrdersEl[myBuyOrdersEl.length - 1].innerText == "My buy orders (scan stopped)") {
+								stopScan = true;
+								return false;
+							}
+							setTimeout(listenForStop, 100);
+						})();
 					} else {
 						chrome.storage.sync.get(["autoScanOrdersDelaySLS"], function (result) {
 							scanDelay = result.autoScanOrdersDelaySLS;
-							myBuyOrders.innerText = "My buy orders (scanning)";
+							myBuyOrdersEl[myBuyOrdersEl.length - 1].innerText = "My buy orders (scanning)";
 							autoCheckOrders();
 							onbeforeunload = function () {
 								return "";
 							};
-						})
+						});
+						(async function listenForStop() {
+							if (myBuyOrdersEl[myBuyOrdersEl.length - 1].innerText == "My buy orders (scan stopped)") {
+								stopScan = true;
+								return false;
+							}
+							setTimeout(listenForStop, 100);
+						})();
 					}
 				} else {
-					myBuyOrders.innerText = "My buy orders (scan stopped)";
+					myBuyOrdersEl[myBuyOrdersEl.length - 1].innerText = "My buy orders (scan stopped)";
 				}
 			})
 		});
 	});
 });
+
 
 //-------> ф-я скана <-------//
 async function checkOrders() {
@@ -63,10 +79,6 @@ async function checkOrders() {
 	}
 	for (order of orderList) {
 
-		if (myBuyOrders.innerText == "My buy orders (scan stopped)") {
-			break;
-		}
-
 		var buy_orderid = order.id.substring(11);
 		var orderHref = order.getElementsByClassName('market_listing_item_name_link')[0].href;
 		var orderPrice = order.getElementsByClassName('market_listing_price')[0].innerText.replace(/\D+/g, '');
@@ -76,8 +88,15 @@ async function checkOrders() {
 		}
 		await retryOnFailForSingle(4, 15000, getSource);
 
+		if (stopScan == true) {
+			break;
+		}
+
 		var tenPrices = getFromBetween.get(sourceCode, '<span class="market_listing_price market_listing_price_without_fee">', '</span>').map(s => s.replace(/\D+/g, '') * 1).filter(Number);
 		var steamPrice = tenPrices.reduce((a, b) => a + b, 0) / tenPrices.length;
+		if (steamPrice == 'undefined') {
+			steamPrice = 999999;
+		}
 
 		if (orderPrice > steamPrice) {
 
@@ -103,7 +122,6 @@ async function checkOrders() {
 		} else {
 			order.style.backgroundColor = "#1C4C1C";
 		}
-		await new Promise(done => setTimeout(() => done(), 100));
 	}
 
 	console.log('%c ■  single scan end  ■ ', 'background: #000000; color: #FFD700');
@@ -122,11 +140,6 @@ async function autoCheckOrders() {
 	if (orderList.length > 0) {
 		for (order of orderList) {
 
-			if (myBuyOrders.innerText == "My buy orders (scan stopped)") {
-				console.log('%c ■  auto scan end  ■ ', 'background: #000000; color: #FFD700');
-				return;
-			}
-
 			var appid = order.appid;
 			var buy_orderid = order.buy_orderid;
 			var hash_name = order.hash_name;
@@ -137,6 +150,11 @@ async function autoCheckOrders() {
 				sourceCode = await httpGet(orderHref);
 			}
 			await retryOnFailForAuto(8, 30000, 15, getSource);
+
+			if (stopScan == true) {
+				console.log('%c ■  auto scan end  ■ ', 'background: #000000; color: #FFD700');
+				return false;
+			}
 
 			var tenPrices = getFromBetween.get(sourceCode, '<span class="market_listing_price market_listing_price_without_fee">', "</span>").map(s => s.replace(/\D+/g, "") * 1).filter(Number);
 			var steamPrice = tenPrices.reduce((a, b) => a + b, 0) / tenPrices.length;
@@ -250,24 +268,34 @@ var getFromBetween = {
 
 //ф-я повторений
 async function retryOnFailForSingle(attempts, delay, fn) {
+	if (stopScan == true) {
+		return false;
+	}
 	var tries = attempts;
-	return await fn().catch(function () {
+	return await fn().catch(async function () {
 		if (tries <= 0) {
 			alert("Can't load item page, check Market for microbans and then press 'OK'");
+			await new Promise(done => setTimeout(() => done(), delay));
 			return retryOnFailForSingle(attempts, delay, fn);
 		}
-		return setTimeout(retryOnFailForSingle(tries - 1, delay, fn), delay);
+		await new Promise(done => setTimeout(() => done(), delay));
+		return retryOnFailForSingle(tries - 1, delay, fn);
 	});
 }
 
 //ф-я повторений
 async function retryOnFailForAuto(attempts, delay, pause, fn) {
+	if (stopScan == true) {
+		return false;
+	}
 	var tries = attempts;
-	return await fn().catch(function () {
+	return await fn().catch(async function () {
 		if (tries <= 0) {
 			console.log("Error! Can't load item page.");
-			return setTimeout(retryOnFailForAuto(attempts, delay, fn), pause * 60000);
+			await new Promise(done => setTimeout(() => done(), pause * 60000));
+			return retryOnFailForAuto(attempts, delay, fn);
 		}
-		return setTimeout(retryOnFailForAuto(tries - 1, delay, fn), delay);
+		await new Promise(done => setTimeout(() => done(), delay));
+		return retryOnFailForAuto(tries - 1, delay, fn);
 	});
 }
