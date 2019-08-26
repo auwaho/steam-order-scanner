@@ -45,7 +45,7 @@ function httpGet(url) {
 if (window.location.href == window.location.protocol + "//steamcommunity.com/market/") {
   lookForOrders()
   async function lookForOrders() {
-    await new Promise(done => setTimeout(() => done(), 5000));
+    await new Promise(done => setTimeout(() => done(), 8000));
     if (document.body.contains(document.getElementById('my_market_buylistings_number')) == true) {
       var qntDiv = document.getElementById('my_market_buylistings_number');
       qntDiv.style.cursor = "pointer";

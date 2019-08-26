@@ -54,14 +54,14 @@ chrome.storage.sync.get(['cancelHighOrdersSLS'], function (result) {
 							scanDelay = result.autoScanOrdersDelaySLS;
 							myBuyOrdersEl[myBuyOrdersEl.length - 1].innerText = "My buy orders (scanning)";
 							autoCheckOrders();
+							(async function listenForStop() {
+								if (myBuyOrdersEl[myBuyOrdersEl.length - 1].innerText == "My buy orders (scan stopped)") {
+									stopScan = true;
+									return false;
+								}
+								setTimeout(listenForStop, 500);
+							})();
 						});
-						(async function listenForStop() {
-							if (myBuyOrdersEl[myBuyOrdersEl.length - 1].innerText == "My buy orders (scan stopped)") {
-								stopScan = true;
-								return false;
-							}
-							setTimeout(listenForStop, 500);
-						})();
 					}
 				} else {
 					myBuyOrdersEl[myBuyOrdersEl.length - 1].innerText = "My buy orders (scan stopped)";
@@ -96,7 +96,8 @@ async function checkOrders() {
 		}
 
 		var tenPrices = getFromBetween.get(sourceCode, '<span class="market_listing_price market_listing_price_without_fee">', '</span>').map(s => s.replace(/\D+/g, '') * 1).filter(Number);
-		var steamPrice = tenPrices.reduce((a, b) => a + b, 0) / tenPrices.length;
+		var fivePrices = tenPrices.slice(Math.max(tenPrices.length - 5, 1));
+		var steamPrice = fivePrices.reduce((a, b) => a + b, 0) / fivePrices.length;
 
 		if (orderPrice > steamPrice) {
 
@@ -130,6 +131,7 @@ async function checkOrders() {
 	}
 
 	console.log('%c ■  single scan end  ■ ', 'background: #000000; color: #FFD700');
+	myBuyOrdersEl[myBuyOrdersEl.length - 1].innerText = "My buy orders (scan stopped)";
 	chrome.storage.sync.set({
 		scanButtonSLS: "start scan"
 	});
@@ -162,7 +164,8 @@ async function autoCheckOrders() {
 			}
 
 			var tenPrices = getFromBetween.get(sourceCode, '<span class="market_listing_price market_listing_price_without_fee">', "</span>").map(s => s.replace(/\D+/g, "") * 1).filter(Number);
-			var steamPrice = tenPrices.reduce((a, b) => a + b, 0) / tenPrices.length;
+			var fivePrices = tenPrices.slice(Math.max(tenPrices.length - 5, 1));
+			var steamPrice = fivePrices.reduce((a, b) => a + b, 0) / fivePrices.length;
 
 			if (orderPrice > steamPrice) {
 
