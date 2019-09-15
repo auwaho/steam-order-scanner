@@ -25,7 +25,7 @@ if (orderList.length == 0) {
 	throw 'error: no orders or not logined.';
 }
 
-var myBuyOrdersEl = document.getElementsByClassName("my_market_header_active");
+var myBuyOrdersEl = document.getElementsByClassName("my_market_header_active")[document.getElementsByClassName("my_market_header_active").length - 1];
 
 chrome.storage.sync.get(['cancelHighOrdersSLS'], function (result) {
 	cancelHigh = result.cancelHighOrdersSLS;
@@ -36,14 +36,14 @@ chrome.storage.sync.get(['cancelHighOrdersSLS'], function (result) {
 			chrome.storage.sync.get(["scanButtonSLS"], function (result) {
 				if (result.scanButtonSLS == "stop scan") {
 					if (autoScan == false) {
-						myBuyOrdersEl[myBuyOrdersEl.length - 1].innerText = "My buy orders (scanning)";
+						myBuyOrdersEl.style.color = "gold";
 						orderList[0].scrollIntoView({
 							block: 'center',
 							behavior: 'smooth'
 						});
 						checkOrders();
 						(async function listenForStop() {
-							if (myBuyOrdersEl[myBuyOrdersEl.length - 1].innerText == "My buy orders (scan stopped)") {
+							if (myBuyOrdersEl.style.color == "white") {
 								stopScan = true;
 								return false;
 							}
@@ -52,10 +52,10 @@ chrome.storage.sync.get(['cancelHighOrdersSLS'], function (result) {
 					} else {
 						chrome.storage.sync.get(["autoScanOrdersDelaySLS"], function (result) {
 							scanDelay = result.autoScanOrdersDelaySLS;
-							myBuyOrdersEl[myBuyOrdersEl.length - 1].innerText = "My buy orders (scanning)";
+							myBuyOrdersEl.style.color = "gold";
 							autoCheckOrders();
 							(async function listenForStop() {
-								if (myBuyOrdersEl[myBuyOrdersEl.length - 1].innerText == "My buy orders (scan stopped)") {
+								if (myBuyOrdersEl.style.color == "white") {
 									stopScan = true;
 									return false;
 								}
@@ -64,7 +64,7 @@ chrome.storage.sync.get(['cancelHighOrdersSLS'], function (result) {
 						});
 					}
 				} else {
-					myBuyOrdersEl[myBuyOrdersEl.length - 1].innerText = "My buy orders (scan stopped)";
+					myBuyOrdersEl.style.color = "white";
 				}
 			})
 		});
@@ -127,11 +127,11 @@ async function checkOrders() {
 		} else {
 			order.style.backgroundColor = "#1C4C1C";
 		}
-		await new Promise(done => setTimeout(() => done(), 100));
+		await new Promise(done => setTimeout(() => done(), 1000));
 	}
 
 	console.log('%c ■  single scan end  ■ ', 'background: #000000; color: #FFD700');
-	myBuyOrdersEl[myBuyOrdersEl.length - 1].innerText = "My buy orders (scan stopped)";
+	myBuyOrdersEl.style.color = "white";
 	chrome.storage.sync.set({
 		scanButtonSLS: "start scan"
 	});
@@ -177,10 +177,12 @@ async function autoCheckOrders() {
 				console.log(`${orderHref} | price: ${orderPrice / 100}`);
 
 			}
-			await new Promise(done => setTimeout(() => done(), Math.floor(Math.random() * (+2000 - +1000)) + +1000));
+			console.log('Order is ok');
+			await new Promise(done => setTimeout(() => done(), Math.floor(Math.random() * (+3000 - +1500)) + +1500));
 		}
 	}
 
+	console.log('%c ■  auto scan end  ■ ', 'background: #000000; color: #FFD700');
 	setTimeout(autoCheckOrders, scanDelay * 60000);
 }
 
