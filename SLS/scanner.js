@@ -1,5 +1,6 @@
 var cancelHigh;
 var cancelLow;
+var lowPct;
 var scanDelay;
 var orderList = [];
 var stopScan = false;
@@ -27,33 +28,23 @@ if (orderList.length == 0) {
 
 var myBuyOrdersEl = document.getElementsByClassName("my_market_header_active")[document.getElementsByClassName("my_market_header_active").length - 1];
 
-chrome.storage.sync.get(['cancelHighOrdersSLS'], function (result) {
-	cancelHigh = result.cancelHighOrdersSLS;
-	chrome.storage.sync.get(['cancelLowOrdersSLS'], function (result) {
-		cancelLow = result.cancelLowOrdersSLS;
-		chrome.storage.sync.get(["autoScanOrdersSLS"], function (result) {
-			var autoScan = result.autoScanOrdersSLS;
-			chrome.storage.sync.get(["scanButtonSLS"], function (result) {
-				if (result.scanButtonSLS == "stop scan") {
-					if (autoScan == false) {
-						myBuyOrdersEl.style.color = "gold";
-						orderList[0].scrollIntoView({
-							block: 'center',
-							behavior: 'smooth'
-						});
-						checkOrders();
-						(async function listenForStop() {
-							if (myBuyOrdersEl.style.color == "white") {
-								stopScan = true;
-								return false;
-							}
-							setTimeout(listenForStop, 500);
-						})();
-					} else {
-						chrome.storage.sync.get(["autoScanOrdersDelaySLS"], function (result) {
-							scanDelay = result.autoScanOrdersDelaySLS;
+chrome.storage.sync.get(["lowOrdersPctSLS"], function (result) {
+	lowPct = result.lowOrdersPctSLS;
+	chrome.storage.sync.get(['cancelHighOrdersSLS'], function (result) {
+		cancelHigh = result.cancelHighOrdersSLS;
+		chrome.storage.sync.get(['cancelLowOrdersSLS'], function (result) {
+			cancelLow = result.cancelLowOrdersSLS;
+			chrome.storage.sync.get(["autoScanOrdersSLS"], function (result) {
+				var autoScan = result.autoScanOrdersSLS;
+				chrome.storage.sync.get(["scanButtonSLS"], function (result) {
+					if (result.scanButtonSLS == "stop scan") {
+						if (autoScan == false) {
 							myBuyOrdersEl.style.color = "gold";
-							autoCheckOrders();
+							orderList[0].scrollIntoView({
+								block: 'center',
+								behavior: 'smooth'
+							});
+							checkOrders();
 							(async function listenForStop() {
 								if (myBuyOrdersEl.style.color == "white") {
 									stopScan = true;
@@ -61,12 +52,25 @@ chrome.storage.sync.get(['cancelHighOrdersSLS'], function (result) {
 								}
 								setTimeout(listenForStop, 500);
 							})();
-						});
+						} else {
+							chrome.storage.sync.get(["autoScanOrdersDelaySLS"], function (result) {
+								scanDelay = result.autoScanOrdersDelaySLS;
+								myBuyOrdersEl.style.color = "gold";
+								autoCheckOrders();
+								(async function listenForStop() {
+									if (myBuyOrdersEl.style.color == "white") {
+										stopScan = true;
+										return false;
+									}
+									setTimeout(listenForStop, 500);
+								})();
+							});
+						}
+					} else {
+						myBuyOrdersEl.style.color = "white";
 					}
-				} else {
-					myBuyOrdersEl.style.color = "white";
-				}
-			})
+				})
+			});
 		});
 	});
 });
@@ -112,7 +116,7 @@ async function checkOrders() {
 			order.style.backgroundColor = "#4C1C1C"; //меняем цвет ордера на красный
 			console.log(`${orderHref} | price: ${orderPrice / 100}`);
 
-		} else if (orderPrice < steamPrice * 0.8) {
+		} else if (orderPrice < steamPrice * (100 - lowPct) / 100) {
 
 			if (cancelLow == true) {
 				async function sendPost() {

@@ -5,6 +5,7 @@ const showMoreOrders = document.getElementById("showMoreOrders");
 const showMoreOrdersQnt = document.getElementById("showMoreOrdersQnt");
 const autoScanOrders = document.getElementById("autoScanOrders");
 const autoScanOrdersDelay = document.getElementById("autoScanOrdersDelay");
+const lowOrdersPct = document.getElementById("lowOrdersPct");
 
 /////////////подгружаем сохраненные данные/////////////
 chrome.storage.sync.get(["cancelHighOrdersSLS"], function (result) {
@@ -27,6 +28,14 @@ chrome.storage.sync.get(["autoScanOrdersDelaySLS"], function (result) {
 });
 chrome.storage.sync.get(["scanButtonSLS"], function (result) {
   scanButton.innerText = result.scanButtonSLS;
+  if (scanButton.innerText == "stop scan"){
+    cancelHighOrders.disabled = true;
+    cancelLowOrders.disabled = true;
+    lowOrdersPct.disabled = true;
+  }
+});
+chrome.storage.sync.get(["lowOrdersPctSLS"], function (result) {
+  lowOrdersPct.value = result.lowOrdersPctSLS;
 });
 
 /////////////сохраняем данные по клику/////////////
@@ -84,6 +93,11 @@ autoScanOrdersDelay.addEventListener("change", () => {
     autoScanOrdersDelaySLS: autoScanOrdersDelay.value
   });
 });
+lowOrdersPct.addEventListener("change", () => {
+  chrome.storage.sync.set({
+    lowOrdersPctSLS: lowOrdersPct.value
+  });
+});
 scanButton.addEventListener("click", () => {
   if (scanButton.innerText == "start scan") {
     chrome.tabs.executeScript({
@@ -93,6 +107,11 @@ scanButton.addEventListener("click", () => {
     chrome.storage.sync.set({
       scanButtonSLS: scanButton.innerText
     });
+
+    cancelHighOrders.disabled = true;
+    cancelLowOrders.disabled = true;
+    lowOrdersPct.disabled = true;
+
   } else {
     chrome.tabs.executeScript({
       file: "scanner.js"
@@ -101,6 +120,11 @@ scanButton.addEventListener("click", () => {
     chrome.storage.sync.set({
       scanButtonSLS: scanButton.innerText
     });
+
+    cancelHighOrders.disabled = false;
+    cancelLowOrders.disabled = false;
+    lowOrdersPct.disabled = false;
+    
   }
   scanButton.disabled = true;
   setTimeout(() => {
@@ -112,7 +136,7 @@ chrome.tabs.query({
   'active': true,
   'lastFocusedWindow': true
 }, function (tabs) {
-  if (tabs[0].url == "https://steamcommunity.com/market/") {
+  if (tabs[0].url == "https://steamcommunity.com/market/" || tabs[0].url == "https://steamcommunity.com/market") {
     scanButton.disabled = false;
   }
 });

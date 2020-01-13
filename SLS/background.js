@@ -49,3 +49,10 @@ chrome.runtime.onInstalled.addListener(function () {
     }
   });
 });
+chrome.storage.sync.get(["lowOrdersPctSLS"], function (result) {
+  if (typeof result.lowOrdersPctSLS == "undefined") {
+    chrome.storage.sync.set({
+      lowOrdersPctSLS: 20
+    });
+  }
+});

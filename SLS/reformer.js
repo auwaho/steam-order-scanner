@@ -42,7 +42,7 @@ function httpGet(url) {
 
 
 //для основной страницы маркета
-if (window.location.href == window.location.protocol + "//steamcommunity.com/market/") {
+if (window.location.href == window.location.protocol + "//steamcommunity.com/market/" || window.location.href == window.location.protocol + "//steamcommunity.com/market") {
   lookForOrders()
   async function lookForOrders() {
     await new Promise(done => setTimeout(() => done(), 8000));
