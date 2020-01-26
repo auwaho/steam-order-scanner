@@ -103,6 +103,11 @@ async function checkOrders() {
 		var fivePrices = tenPrices.slice(Math.max(tenPrices.length - 5, 1));
 		var steamPrice = fivePrices.reduce((a, b) => a + b, 0) / fivePrices.length;
 
+		//preventing false cancels (just in case)
+		if (isNaN(steamPrice) == true || steamPrice == 0){
+			continue;
+		}
+
 		if (orderPrice > steamPrice) {
 
 			if (cancelHigh == true) {
