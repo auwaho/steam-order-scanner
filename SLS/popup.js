@@ -7,7 +7,7 @@ const autoScanOrders = document.getElementById("autoScanOrders");
 const autoScanOrdersDelay = document.getElementById("autoScanOrdersDelay");
 const lowOrdersPct = document.getElementById("lowOrdersPct");
 
-/////////////подгружаем сохраненные данные/////////////
+// подгружаем сохраненные данные
 chrome.storage.sync.get(["cancelHighOrdersSLS"], function (result) {
   cancelHighOrders.checked = result.cancelHighOrdersSLS;
 });
@@ -28,7 +28,7 @@ chrome.storage.sync.get(["autoScanOrdersDelaySLS"], function (result) {
 });
 chrome.storage.sync.get(["scanButtonSLS"], function (result) {
   scanButton.innerText = result.scanButtonSLS;
-  if (scanButton.innerText == "stop scan"){
+  if (scanButton.innerText == "stop scan") {
     cancelHighOrders.disabled = true;
     cancelLowOrders.disabled = true;
     lowOrdersPct.disabled = true;
@@ -38,7 +38,7 @@ chrome.storage.sync.get(["lowOrdersPctSLS"], function (result) {
   lowOrdersPct.value = result.lowOrdersPctSLS;
 });
 
-/////////////сохраняем данные по клику/////////////
+// обновляем данные по клику
 cancelHighOrders.addEventListener("change", event => {
   if (event.target.checked) {
     chrome.storage.sync.set({
@@ -124,14 +124,27 @@ scanButton.addEventListener("click", () => {
     cancelHighOrders.disabled = false;
     cancelLowOrders.disabled = false;
     lowOrdersPct.disabled = false;
-    
+
   }
   scanButton.disabled = true;
+
   setTimeout(() => {
     scanButton.disabled = false;
-  }, 1500);
+  }, 1000);
 });
 
+// обновляем кнопку в открытом окне по завершению скана
+chrome.storage.onChanged.addListener(function (changes, namespace) {
+  if (namespace == "sync" && "scanButtonSLS" in changes) {
+    chrome.storage.sync.get(["scanButtonSLS"], function (result) {
+      if (result.scanButtonSLS == "start scan") {
+        scanButton.innerText = "start scan";
+      }
+    });
+  }
+});
+
+// выключаем кнопку везде, кроме странницы маркета
 chrome.tabs.query({
   'active': true,
   'lastFocusedWindow': true
