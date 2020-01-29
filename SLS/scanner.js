@@ -5,9 +5,9 @@ var scanDelay;
 var orderList = [];
 var stopScan = false;
 
-onbeforeunload = function () {
+/*onbeforeunload = function () {
 	return "";
-};
+};*/
 onunload = function () {
 	chrome.storage.sync.set({
 		scanButtonSLS: "start scan"
@@ -22,6 +22,9 @@ for (marketItem of marketItems) {
 }
 
 if (orderList.length == 0) {
+	chrome.storage.sync.set({
+		scanButtonSLS: "start scan"
+	});
 	alert("Looks like you have not buy orders or not logined!");
 	throw 'error: no orders or not logined.';
 }
@@ -44,7 +47,7 @@ chrome.storage.sync.get(["lowOrdersPctSLS"], function (result) {
 								block: 'center',
 								behavior: 'smooth'
 							});
-							checkOrders();
+							window.onload = checkOrders();
 							(async function listenForStop() {
 								if (myBuyOrdersEl.style.color == "white") {
 									stopScan = true;
@@ -56,7 +59,7 @@ chrome.storage.sync.get(["lowOrdersPctSLS"], function (result) {
 							chrome.storage.sync.get(["autoScanOrdersDelaySLS"], function (result) {
 								scanDelay = result.autoScanOrdersDelaySLS;
 								myBuyOrdersEl.style.color = "gold";
-								autoCheckOrders();
+								window.onload = autoCheckOrders();
 								(async function listenForStop() {
 									if (myBuyOrdersEl.style.color == "white") {
 										stopScan = true;
@@ -79,6 +82,7 @@ chrome.storage.sync.get(["lowOrdersPctSLS"], function (result) {
 //-------> ф-я скана <-------//
 async function checkOrders() {
 
+	window.stop();
 	console.log('%c ▼ single scan start ▼ ', 'background: #000000; color: #FFD700');
 
 	for (order of orderList) {
@@ -104,7 +108,7 @@ async function checkOrders() {
 		var steamPrice = fivePrices.reduce((a, b) => a + b, 0) / fivePrices.length;
 
 		//preventing false cancels (just in case)
-		if (isNaN(steamPrice) == true || steamPrice == 0){
+		if (isNaN(steamPrice) == true || steamPrice == 0) {
 			continue;
 		}
 
@@ -149,7 +153,9 @@ async function checkOrders() {
 //-------> ф-я автоскана <-------//
 async function autoCheckOrders() {
 
+	window.stop();
 	console.log('%c ▼ auto scan start ▼ ', 'background: #000000; color: #FFD700');
+
 	var myListings = JSON.parse(await httpGet("//steamcommunity.com/market/mylistings/?norender=1"));
 	var orderList = myListings.buy_orders;
 
