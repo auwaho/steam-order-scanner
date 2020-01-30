@@ -5,9 +5,9 @@ var scanDelay;
 var orderList = [];
 var stopScan = false;
 
-/*onbeforeunload = function () {
+onbeforeunload = function () {
 	return "";
-};*/
+};
 onunload = function () {
 	chrome.storage.sync.set({
 		scanButtonSLS: "start scan"
@@ -85,14 +85,21 @@ async function checkOrders() {
 	window.stop();
 	console.log('%c ▼ single scan start ▼ ', 'background: #000000; color: #FFD700');
 
-	for (order of orderList) {
-		order.style.backgroundColor = "rgba(0, 0, 0, 0.2)";
+	for (var oldOrder of orderList) {
+		oldOrder.style.backgroundColor = "rgba(0, 0, 0, 0.2)";
 	}
-	for (order of orderList) {
+	for (var order of orderList) {
 
 		var buy_orderid = order.id.substring(11);
 		var orderHref = order.getElementsByClassName('market_listing_item_name_link')[0].href;
-		var orderPrice = order.getElementsByClassName('market_listing_price')[0].innerText.replace(/\D+/g, '');
+		//var orderPrice = order.getElementsByClassName('market_listing_price')[0].innerText.replace(/\D+/g, '');
+		var orderPrice = 0;
+		for (var element of order.getElementsByClassName("market_listing_right_cell market_listing_my_price")){
+			if (element.className == "market_listing_right_cell market_listing_my_price"){
+				orderPrice = element.getElementsByClassName('market_listing_price')[0].innerText.replace(/\D+/g, '');
+			}
+		}
+		
 		var sourceCode;
 		async function getSource() {
 			sourceCode = await httpGet(orderHref);
@@ -123,7 +130,7 @@ async function checkOrders() {
 			}
 
 			order.style.backgroundColor = "#4C1C1C"; //меняем цвет ордера на красный
-			console.log(`${orderHref} | price: ${orderPrice / 100}`);
+			console.log(`${orderHref} | order: ${orderPrice / 100}`);
 
 		} else if (orderPrice < steamPrice * (100 - lowPct) / 100) {
 
@@ -160,7 +167,7 @@ async function autoCheckOrders() {
 	var orderList = myListings.buy_orders;
 
 	if (orderList.length > 0) {
-		for (order of orderList) {
+		for (var order of orderList) {
 
 			var appid = order.appid;
 			var buy_orderid = order.buy_orderid;
@@ -189,7 +196,7 @@ async function autoCheckOrders() {
 				}
 				await retryOnFailForAuto(4, 30000, 10, sendPost);
 				//await httpPost('//steamcommunity.com/market/cancelbuyorder/', getSessionId(), buy_orderid);
-				console.log(`${orderHref} | price: ${orderPrice / 100}`);
+				console.log(`${orderHref} | order: ${orderPrice / 100}`);
 
 			}
 			console.log('Order is ok');
