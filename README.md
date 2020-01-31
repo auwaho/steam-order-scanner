@@ -3,7 +3,7 @@ Google Chrome extension for Steam Community Market's work simplifying and semi-a
 
 ![alt text](https://github.com/auwaho/SteamListingsScanner/blob/master/screenshot.png "Steam Listings Scanner")
 
-Extension functions for now:
+#### Extension functions for now: 
 - scanning for relevance your buy order list. Marks each order with color (green = good, yellow = too low (as set in popup window), red = overpriced)
 - cancelling overpriced or too low orders
 - displaying "market_listing_price_without_fee" under the price of each lot on the item page
