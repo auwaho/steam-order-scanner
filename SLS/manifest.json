@@ -3,7 +3,7 @@
   "name": "Steam Listings Scanner",
   "short_name": "SLS",
   "description": "This extension analyze your Steam Community Market sell listings and buy orders.",
-  "version": "1.0",
+  "version": "1.0.1",
   "permissions": [
     "storage",
     "activeTab",
