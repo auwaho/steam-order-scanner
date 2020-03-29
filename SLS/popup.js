@@ -6,6 +6,7 @@ const showMoreOrdersQnt = document.getElementById("showMoreOrdersQnt");
 const autoScanOrders = document.getElementById("autoScanOrders");
 const autoScanOrdersDelay = document.getElementById("autoScanOrdersDelay");
 const lowOrdersPct = document.getElementById("lowOrdersPct");
+const timeoutPerOrder = document.getElementById("timeoutPerOrder");
 
 // подгружаем сохраненные данные
 chrome.storage.sync.get(["cancelHighOrdersSLS"], function (result) {
@@ -36,6 +37,9 @@ chrome.storage.sync.get(["scanButtonSLS"], function (result) {
 });
 chrome.storage.sync.get(["lowOrdersPctSLS"], function (result) {
   lowOrdersPct.value = result.lowOrdersPctSLS;
+});
+chrome.storage.sync.get(["timeoutPerOrderSLS"], function (result) {
+  timeoutPerOrder.value = result.timeoutPerOrderSLS;
 });
 
 // обновляем данные по клику
@@ -96,6 +100,11 @@ autoScanOrdersDelay.addEventListener("change", () => {
 lowOrdersPct.addEventListener("change", () => {
   chrome.storage.sync.set({
     lowOrdersPctSLS: lowOrdersPct.value
+  });
+});
+timeoutPerOrder.addEventListener("change", () => {
+  chrome.storage.sync.set({
+    timeoutPerOrderSLS: timeoutPerOrder.value
   });
 });
 scanButton.addEventListener("click", () => {

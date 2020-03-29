@@ -1,3 +1,4 @@
+var pause;
 var cancelHigh;
 var cancelLow;
 var lowPct;
@@ -15,31 +16,21 @@ onunload = function () {
 
 var myBuyOrdersEl = document.getElementsByClassName("my_market_header_active")[document.getElementsByClassName("my_market_header_active").length - 1];
 
-chrome.storage.sync.get(["lowOrdersPctSLS"], function (result) {
-	lowPct = result.lowOrdersPctSLS;
-	chrome.storage.sync.get(['cancelHighOrdersSLS'], function (result) {
-		cancelHigh = result.cancelHighOrdersSLS;
-		chrome.storage.sync.get(['cancelLowOrdersSLS'], function (result) {
-			cancelLow = result.cancelLowOrdersSLS;
-			chrome.storage.sync.get(["autoScanOrdersSLS"], function (result) {
-				var autoScan = result.autoScanOrdersSLS;
-				chrome.storage.sync.get(["scanButtonSLS"], function (result) {
-					if (result.scanButtonSLS == "stop scan") {
-						if (autoScan == false) {
-							myBuyOrdersEl.style.color = "gold";
-							window.onload = checkOrders();
-							(async function listenForStop() {
-								if (myBuyOrdersEl.style.color == "white") {
-									stopScan = true;
-									return false;
-								}
-								setTimeout(listenForStop, 500);
-							})();
-						} else {
-							chrome.storage.sync.get(["autoScanOrdersDelaySLS"], function (result) {
-								scanDelay = result.autoScanOrdersDelaySLS;
+chrome.storage.sync.get(["timeoutPerOrderSLS"], function (result) {
+	pause = result.timeoutPerOrderSLS;
+	chrome.storage.sync.get(["lowOrdersPctSLS"], function (result) {
+		lowPct = result.lowOrdersPctSLS;
+		chrome.storage.sync.get(['cancelHighOrdersSLS'], function (result) {
+			cancelHigh = result.cancelHighOrdersSLS;
+			chrome.storage.sync.get(['cancelLowOrdersSLS'], function (result) {
+				cancelLow = result.cancelLowOrdersSLS;
+				chrome.storage.sync.get(["autoScanOrdersSLS"], function (result) {
+					var autoScan = result.autoScanOrdersSLS;
+					chrome.storage.sync.get(["scanButtonSLS"], function (result) {
+						if (result.scanButtonSLS == "stop scan") {
+							if (autoScan == false) {
 								myBuyOrdersEl.style.color = "gold";
-								window.onload = autoCheckOrders();
+								window.onload = checkOrders();
 								(async function listenForStop() {
 									if (myBuyOrdersEl.style.color == "white") {
 										stopScan = true;
@@ -47,12 +38,25 @@ chrome.storage.sync.get(["lowOrdersPctSLS"], function (result) {
 									}
 									setTimeout(listenForStop, 500);
 								})();
-							});
+							} else {
+								chrome.storage.sync.get(["autoScanOrdersDelaySLS"], function (result) {
+									scanDelay = result.autoScanOrdersDelaySLS;
+									myBuyOrdersEl.style.color = "gold";
+									window.onload = autoCheckOrders();
+									(async function listenForStop() {
+										if (myBuyOrdersEl.style.color == "white") {
+											stopScan = true;
+											return false;
+										}
+										setTimeout(listenForStop, 500);
+									})();
+								});
+							}
+						} else {
+							myBuyOrdersEl.style.color = "white";
 						}
-					} else {
-						myBuyOrdersEl.style.color = "white";
-					}
-				})
+					})
+				});
 			});
 		});
 	});
@@ -158,7 +162,7 @@ async function checkOrders() {
 				order.style.backgroundColor = "#1C4C1C"; //change order color to green
 			}
 			console.log('Check');
-			await new Promise(done => setTimeout(() => done(), 1000));
+			await new Promise(done => setTimeout(() => done(), pause));
 		}
 
 	} else {

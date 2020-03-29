@@ -1,4 +1,4 @@
-//ф-я нахождения строки
+//string finding function
 String.prototype.extract = function (prefix, suffix) {
   s = this;
   var i = s.indexOf(prefix);
@@ -18,7 +18,7 @@ String.prototype.extract = function (prefix, suffix) {
   return s;
 };
 
-//ф-я получения кода странницы
+//source code getting function
 function httpGet(url) {
   return new Promise(function (resolve, reject) {
     var xhr = new XMLHttpRequest();
@@ -41,7 +41,7 @@ function httpGet(url) {
 }
 
 
-//для основной страницы маркета
+//for main market page (show remain orders)
 if (window.location.href == window.location.protocol + "//steamcommunity.com/market/" || window.location.href == window.location.protocol + "//steamcommunity.com/market") {
   lookForOrders()
   async function lookForOrders() {
@@ -79,7 +79,7 @@ if (window.location.href == window.location.protocol + "//steamcommunity.com/mar
 }
 
 
-//для страниц с лотами
+//for market items pages
 if (window.location.href.indexOf(window.location.protocol + "//steamcommunity.com/market/listings/") != -1) {
 
   if (document.getElementById("market_commodity_order_spread") == null) {
@@ -93,7 +93,7 @@ if (window.location.href.indexOf(window.location.protocol + "//steamcommunity.co
     document.head.appendChild(style);
   }
 
-  //расширяем таблицу ордеров, если включено
+  //show more orders and sales if enabled
   chrome.storage.sync.get(["showMoreOrdersSLS"], function (result) {
     if (result.showMoreOrdersSLS == true) {
 
