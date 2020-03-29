@@ -1,4 +1,4 @@
-//ф-я нахождения строки
+//string finding function
 String.prototype.extract = function (prefix, suffix) {
   s = this;
   var i = s.indexOf(prefix);
@@ -18,7 +18,7 @@ String.prototype.extract = function (prefix, suffix) {
   return s;
 };
 
-//ф-я получения кода странницы
+//source code getting function
 function httpGet(url) {
   return new Promise(function (resolve, reject) {
     var xhr = new XMLHttpRequest();
@@ -41,7 +41,7 @@ function httpGet(url) {
 }
 
 
-//для основной страницы маркета
+//for main market page (show remain orders)
 if (window.location.href == window.location.protocol + "//steamcommunity.com/market/" || window.location.href == window.location.protocol + "//steamcommunity.com/market") {
   lookForOrders()
   async function lookForOrders() {
@@ -79,18 +79,21 @@ if (window.location.href == window.location.protocol + "//steamcommunity.com/mar
 }
 
 
-//для страниц с лотами
+//for market items pages
 if (window.location.href.indexOf(window.location.protocol + "//steamcommunity.com/market/listings/") != -1) {
-  //добавляем цены с учетом комиссии на странницах лотов
-  const style = document.createElement("style");
-  style.innerHTML = `
-  .market_listing_price_without_fee {
+
+  if (document.getElementById("market_commodity_order_spread") == null) {
+    //добавляем цены с учетом комиссии на странницах лотов
+    const style = document.createElement("style");
+    style.innerHTML = `
+    .market_listing_price_without_fee {
     display: block;
     color: gray;
-  }`;
-  document.head.appendChild(style);
+    }`;
+    document.head.appendChild(style);
+  }
 
-  //расширяем таблицу ордеров, если включено
+  //show more orders and sales if enabled
   chrome.storage.sync.get(["showMoreOrdersSLS"], function (result) {
     if (result.showMoreOrdersSLS == true) {
 
@@ -99,8 +102,10 @@ if (window.location.href.indexOf(window.location.protocol + "//steamcommunity.co
         showQnt = result.showMoreOrdersQntSLS;
       });
 
-      document.getElementById("market_buyorder_info_show_details").style.display = 'none';
-      document.getElementById("market_buyorder_info_details").style.display = 'block';
+      if (document.getElementById("market_commodity_order_spread") == null) {
+        document.getElementById("market_buyorder_info_show_details").style.display = 'none';
+        document.getElementById("market_buyorder_info_details").style.display = 'block';
+      }
 
       const source = document.documentElement.outerHTML;
       const item_nameid = source.extract("Market_LoadOrderSpread( ", " );");
@@ -114,37 +119,70 @@ if (window.location.href.indexOf(window.location.protocol + "//steamcommunity.co
         <tr>
           <th align="right">Price</th>
           <th align="right">Quantity</th>
-        </tr>
-      `;
+        </tr>`;
 
       async function table() {
+
         const histogram = await httpGet(url);
         const parsed = JSON.parse(histogram);
         const buyQnt = parsed.buy_order_graph.length;
+        const sellQnt = parsed.sell_order_graph.length;
 
         for (let i = 0; i < showQnt; i++) {
           if (i >= buyQnt) {
             break;
           }
-          var prc = (parsed.buy_order_graph[i] + "").extract("", ",");
-          var qnt = (parsed.buy_order_graph[i] + "").extract(",", ",");
+          var prc = parsed.buy_order_graph[i][0];
+          var qnt = parsed.buy_order_graph[i][1];
           var row = `
           <tr>
             <td align="right" class="">${parsed.price_prefix}${parseFloat(prc).toFixed(2)}${parsed.price_suffix}</td>
             <td align="right">${qnt - qntSumm}</td>
-          </tr>
-        `;
+          </tr>`;
           qntSumm = qnt;
           tableRows += row;
         }
-
+        
         document.getElementById("market_commodity_buyreqeusts_table").outerHTML = `
         <table class="market_commodity_orders_table">
           <tbody>
             ${tableRows}
           </tbody>
-        </table> 
-      `;
+        </table>`;
+
+        if (document.getElementById("market_commodity_order_spread") != null) {
+
+          tableRows = `
+          <tr>
+          <th align="right">Price</th>
+          <th align="right">Quantity</th>
+          </tr>`;
+
+          qntSumm = 0;
+
+          for (let i = 0; i < showQnt; i++) {
+            if (i >= sellQnt) {
+              break;
+            }
+            var prc = parsed.sell_order_graph[i][0];
+            var qnt = parsed.sell_order_graph[i][1];
+            var row = `
+            <tr>
+              <td align="right" class="">${parsed.price_prefix}${parseFloat(prc).toFixed(2)}${parsed.price_suffix}</td>
+              <td align="right">${qnt - qntSumm}</td>
+            </tr>`;
+            qntSumm = qnt;
+            tableRows += row;
+          }
+
+          document.getElementById("market_commodity_forsale_table").outerHTML = `
+          <table class="market_commodity_orders_table">
+            <tbody>
+              ${tableRows}
+            </tbody>
+          </table>`;
+        }
+
       }
 
       table();

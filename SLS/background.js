@@ -55,4 +55,11 @@ chrome.storage.sync.get(["lowOrdersPctSLS"], function (result) {
       lowOrdersPctSLS: 20
     });
   }
+  chrome.storage.sync.get(["timeoutPerOrderSLS"], function (result) {
+    if (typeof result.timeoutPerOrderSLS == "undefined") {
+      chrome.storage.sync.set({
+        timeoutPerOrderSLS: 1000
+      });
+    }
+  });
 });

@@ -1,8 +1,8 @@
+var pause;
 var cancelHigh;
 var cancelLow;
 var lowPct;
 var scanDelay;
-var orderList = [];
 var stopScan = false;
 
 onbeforeunload = function () {
@@ -14,52 +14,23 @@ onunload = function () {
 	});
 };
 
-var marketItems = document.getElementsByClassName("market_listing_row market_recent_listing_row");
-for (marketItem of marketItems) {
-	if (marketItem.id.includes("mybuyorder_") && window.getComputedStyle(marketItem).display === "block") {
-		orderList.push(marketItem);
-	}
-}
-
-if (orderList.length == 0) {
-	chrome.storage.sync.set({
-		scanButtonSLS: "start scan"
-	});
-	alert("Looks like you have not buy orders or not logined!");
-	throw 'error: no orders or not logined.';
-}
-
 var myBuyOrdersEl = document.getElementsByClassName("my_market_header_active")[document.getElementsByClassName("my_market_header_active").length - 1];
 
-chrome.storage.sync.get(["lowOrdersPctSLS"], function (result) {
-	lowPct = result.lowOrdersPctSLS;
-	chrome.storage.sync.get(['cancelHighOrdersSLS'], function (result) {
-		cancelHigh = result.cancelHighOrdersSLS;
-		chrome.storage.sync.get(['cancelLowOrdersSLS'], function (result) {
-			cancelLow = result.cancelLowOrdersSLS;
-			chrome.storage.sync.get(["autoScanOrdersSLS"], function (result) {
-				var autoScan = result.autoScanOrdersSLS;
-				chrome.storage.sync.get(["scanButtonSLS"], function (result) {
-					if (result.scanButtonSLS == "stop scan") {
-						if (autoScan == false) {
-							myBuyOrdersEl.style.color = "gold";
-							orderList[0].scrollIntoView({
-								block: 'center',
-								behavior: 'smooth'
-							});
-							window.onload = checkOrders();
-							(async function listenForStop() {
-								if (myBuyOrdersEl.style.color == "white") {
-									stopScan = true;
-									return false;
-								}
-								setTimeout(listenForStop, 500);
-							})();
-						} else {
-							chrome.storage.sync.get(["autoScanOrdersDelaySLS"], function (result) {
-								scanDelay = result.autoScanOrdersDelaySLS;
+chrome.storage.sync.get(["timeoutPerOrderSLS"], function (result) {
+	pause = result.timeoutPerOrderSLS;
+	chrome.storage.sync.get(["lowOrdersPctSLS"], function (result) {
+		lowPct = result.lowOrdersPctSLS;
+		chrome.storage.sync.get(['cancelHighOrdersSLS'], function (result) {
+			cancelHigh = result.cancelHighOrdersSLS;
+			chrome.storage.sync.get(['cancelLowOrdersSLS'], function (result) {
+				cancelLow = result.cancelLowOrdersSLS;
+				chrome.storage.sync.get(["autoScanOrdersSLS"], function (result) {
+					var autoScan = result.autoScanOrdersSLS;
+					chrome.storage.sync.get(["scanButtonSLS"], function (result) {
+						if (result.scanButtonSLS == "stop scan") {
+							if (autoScan == false) {
 								myBuyOrdersEl.style.color = "gold";
-								window.onload = autoCheckOrders();
+								window.onload = checkOrders();
 								(async function listenForStop() {
 									if (myBuyOrdersEl.style.color == "white") {
 										stopScan = true;
@@ -67,87 +38,135 @@ chrome.storage.sync.get(["lowOrdersPctSLS"], function (result) {
 									}
 									setTimeout(listenForStop, 500);
 								})();
-							});
+							} else {
+								chrome.storage.sync.get(["autoScanOrdersDelaySLS"], function (result) {
+									scanDelay = result.autoScanOrdersDelaySLS;
+									myBuyOrdersEl.style.color = "gold";
+									window.onload = autoCheckOrders();
+									(async function listenForStop() {
+										if (myBuyOrdersEl.style.color == "white") {
+											stopScan = true;
+											return false;
+										}
+										setTimeout(listenForStop, 500);
+									})();
+								});
+							}
+						} else {
+							myBuyOrdersEl.style.color = "white";
 						}
-					} else {
-						myBuyOrdersEl.style.color = "white";
-					}
-				})
+					})
+				});
 			});
 		});
 	});
 });
 
 
-//-------> ф-я скана <-------//
+//ZZZZZZZZZZZZZZ> SCAN FN <ZZZZZZZZZZZZZZ//
 async function checkOrders() {
 
 	window.stop();
 	console.log('%c ▼ single scan start ▼ ', 'background: #000000; color: #FFD700');
 
-	for (var oldOrder of orderList) {
-		oldOrder.style.backgroundColor = "rgba(0, 0, 0, 0.2)";
+	var orderList = [];
+	var marketItems = document.getElementsByClassName("market_listing_row market_recent_listing_row");
+	for (marketItem of marketItems) {
+		if (marketItem.id.includes("mybuyorder_") && window.getComputedStyle(marketItem).display === "block") {
+			orderList.push(marketItem);
+		}
 	}
-	for (var order of orderList) {
 
-		var buy_orderid = order.id.substring(11);
-		var orderHref = order.getElementsByClassName('market_listing_item_name_link')[0].href;
-		//var orderPrice = order.getElementsByClassName('market_listing_price')[0].innerText.replace(/\D+/g, '');
-		var orderPrice = 0;
-		for (var element of order.getElementsByClassName("market_listing_right_cell market_listing_my_price")){
-			if (element.className == "market_listing_right_cell market_listing_my_price"){
-				orderPrice = element.getElementsByClassName('market_listing_price')[0].innerText.replace(/\D+/g, '');
-			}
+	if (orderList.length > 0) {
+
+		for (var oldOrder of orderList) {
+			oldOrder.style.backgroundColor = "rgba(0, 0, 0, 0.2)";
 		}
-		
-		var sourceCode;
-		async function getSource() {
-			sourceCode = await httpGet(orderHref);
-		}
-		await retryOnFailForSingle(4, 30000, getSource);
+		orderList[0].scrollIntoView({
+			block: 'center',
+			behavior: 'smooth'
+		});
 
-		if (stopScan == true) {
-			break;
-		}
+		for (var order of orderList) {
 
-		var tenPrices = getFromBetween.get(sourceCode, '<span class="market_listing_price market_listing_price_without_fee">', '</span>').map(s => s.replace(/\D+/g, '') * 1).filter(Number);
-		var fivePrices = tenPrices.slice(Math.max(tenPrices.length - 5, 1));
-		var steamPrice = fivePrices.reduce((a, b) => a + b, 0) / fivePrices.length;
-
-		//preventing false cancels (just in case)
-		if (isNaN(steamPrice) == true || steamPrice == 0) {
-			continue;
-		}
-
-		if (orderPrice > steamPrice) {
-
-			if (cancelHigh == true) {
-				async function sendPost() {
-					await httpPost('//steamcommunity.com/market/cancelbuyorder/', getSessionId(), buy_orderid);
+			var buy_orderid = order.id.substring(11);
+			var orderHref = order.getElementsByClassName('market_listing_item_name_link')[0].href;
+			var orderName = order.getElementsByClassName('market_listing_item_name_link')[0].innerText;
+			//var orderPrice = order.getElementsByClassName('market_listing_price')[0].innerText.replace(/\D+/g, '');
+			var orderPrice = 0;
+			for (var element of order.getElementsByClassName("market_listing_right_cell market_listing_my_price")) {
+				if (element.className == "market_listing_right_cell market_listing_my_price") {
+					orderPrice = element.getElementsByClassName('market_listing_price')[0].innerText.replace(/\D+/g, '');
 				}
-				await retryOnFailForSingle(4, 30000, sendPost);
-				//await httpPost('//steamcommunity.com/market/cancelbuyorder/', getSessionId(), buy_orderid);
 			}
 
-			order.style.backgroundColor = "#4C1C1C"; //меняем цвет ордера на красный
-			console.log(`${orderHref} | order: ${orderPrice / 100}`);
+			var sourceCode;
+			async function getSource() {
+				sourceCode = await httpGet(orderHref);
+			}
+			await retryOnFailForSingle(4, 30000, getSource);
 
-		} else if (orderPrice < steamPrice * (100 - lowPct) / 100) {
+			if (stopScan == true) {
+				break;
+			}
 
-			if (cancelLow == true) {
-				async function sendPost() {
-					await httpPost('//steamcommunity.com/market/cancelbuyorder/', getSessionId(), buy_orderid);
+			var steamPrice;
+
+			if (sourceCode.includes('<div id="market_commodity_order_spread">')) {
+
+				var currencyId = getFromBetween.get(sourceCode, '{"wallet_currency":', ',')[0];
+				var itemNameId = getFromBetween.get(sourceCode, 'Market_LoadOrderSpread( ', ' )')[0];
+				orderHref = `https://steamcommunity.com/market/itemordershistogram?language=english&currency=${currencyId}&item_nameid=${itemNameId}`;
+				async function getSource() {
+					sourceCode = await httpGet(orderHref);
 				}
-				await retryOnFailForSingle(4, 30000, sendPost);
-				//await httpPost('//steamcommunity.com/market/cancelbuyorder/', getSessionId(), buy_orderid);
+				await retryOnFailForSingle(4, 30000, getSource);
+				var avarageOfTwo = JSON.parse(sourceCode).sell_order_graph.map(a => a[0]).slice(0, 4).reduce((a, b) => a + b) / 4 - 0.01;
+				steamPrice = avarageOfTwo < 0.16 ? (avarageOfTwo - 0.02) * 100 : Math.ceil(avarageOfTwo / 1.15 * 100);
+
+			} else {
+				var tenPrices = getFromBetween.get(sourceCode, '<span class="market_listing_price market_listing_price_without_fee">', '</span>').map(s => s.replace(/\D+/g, '') * 1).filter(Number);
+				var fivePrices = tenPrices.slice(Math.max(tenPrices.length - 5, 1));
+				steamPrice = fivePrices.reduce((a, b) => a + b, 0) / fivePrices.length;
 			}
 
-			order.style.backgroundColor = "#4C471C";
+			//preventing false cancels (just in case)
+			if (isNaN(steamPrice) == true || steamPrice == 0) {
+				continue;
+			}
 
-		} else {
-			order.style.backgroundColor = "#1C4C1C";
+			if (orderPrice > steamPrice) {
+
+				if (cancelHigh == true) {
+					async function sendPost() {
+						await httpPost('//steamcommunity.com/market/cancelbuyorder/', getSessionId(), buy_orderid);
+					}
+					await retryOnFailForSingle(4, 30000, sendPost);
+				}
+
+				order.style.backgroundColor = "#4C1C1C"; //change order color to red
+				console.log(`%c ${orderName} (${orderPrice / 100}): ${orderHref}`, 'color: red');
+
+			} else if (orderPrice < steamPrice * (100 - lowPct) / 100) {
+
+				if (cancelLow == true) {
+					async function sendPost() {
+						await httpPost('//steamcommunity.com/market/cancelbuyorder/', getSessionId(), buy_orderid);
+					}
+					await retryOnFailForSingle(4, 30000, sendPost);
+				}
+
+				order.style.backgroundColor = "#4C471C"; //change order color to orange
+
+			} else {
+				order.style.backgroundColor = "#1C4C1C"; //change order color to green
+			}
+			console.log('Check');
+			await new Promise(done => setTimeout(() => done(), pause));
 		}
-		await new Promise(done => setTimeout(() => done(), 1000));
+
+	} else {
+		alert("Looks like you have not buy orders or not logined!");
 	}
 
 	console.log('%c ■  single scan end  ■ ', 'background: #000000; color: #FFD700');
@@ -157,7 +176,7 @@ async function checkOrders() {
 	});
 }
 
-//-------> ф-я автоскана <-------//
+//ZZZZZZZZZZZZZZ> AUTO SCAN FN <ZZZZZZZZZZZZZZ//
 async function autoCheckOrders() {
 
 	window.stop();
@@ -195,7 +214,6 @@ async function autoCheckOrders() {
 					await httpPost('//steamcommunity.com/market/cancelbuyorder/', getSessionId(), buy_orderid);
 				}
 				await retryOnFailForAuto(4, 30000, 10, sendPost);
-				//await httpPost('//steamcommunity.com/market/cancelbuyorder/', getSessionId(), buy_orderid);
 				console.log(`${orderHref} | order: ${orderPrice / 100}`);
 
 			}
@@ -209,7 +227,7 @@ async function autoCheckOrders() {
 }
 
 
-//ф-я получения айди сессии
+//ZZZZZZZZZZZZZZ> OTHER FNS <ZZZZZZZZZZZZZZ//
 function getSessionId() {
 	var jsId = document.cookie.match(/sessionid=[^;]+/);
 	if (jsId != null) {
@@ -221,7 +239,6 @@ function getSessionId() {
 	return jsId;
 }
 
-//ф-я получения кода странницы
 function httpGet(url) {
 	return new Promise(function (resolve, reject) {
 		var xhr = new XMLHttpRequest();
@@ -243,7 +260,6 @@ function httpGet(url) {
 	});
 }
 
-//ф-я отправления Post-запроса
 function httpPost(url, sessionid, buy_orderid) {
 	return new Promise(function (resolve, reject) {
 		var xhr = new XMLHttpRequest();
@@ -267,8 +283,6 @@ function httpPost(url, sessionid, buy_orderid) {
 	});
 }
 
-
-//ф-я нахождения строк между строк
 var getFromBetween = {
 	results: [],
 	string: "",
@@ -302,7 +316,6 @@ var getFromBetween = {
 	}
 };
 
-//ф-я повторений
 async function retryOnFailForSingle(attempts, delay, fn) {
 	if (stopScan == true) {
 		return false;
@@ -319,7 +332,6 @@ async function retryOnFailForSingle(attempts, delay, fn) {
 	});
 }
 
-//ф-я повторений
 async function retryOnFailForAuto(attempts, delay, pause, fn) {
 	if (stopScan == true) {
 		return false;
