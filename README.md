@@ -9,7 +9,7 @@ Google Chrome extension for Steam Community Market's work simplifying and semi-a
 - displaying **"market_listing_price_without_fee"** under the price of each lot on the item page
 - ability to show **more buy orders and sales** (for commodity type items) on the item page. Quantity sets up in the popup window
 - ability to show the **number of lots purchased** out of set number in each order (click on the number of orders in brackets right after "My buy orders")
-- **autoscan (experimental)**. Scans your order list with set interval. **Always** cancels overpriced orders. Doesn't cancel too low orders.
+- **autoscan (experimental)**. Scans your order list with set interval. **Always cancels** overpriced orders. Doesn't cancel too low orders.
 
 The extension changes the color of the text “My Buy Orders” to gold when scanning starts and back to white when scanning is completed.
 
