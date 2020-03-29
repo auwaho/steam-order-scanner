@@ -116,9 +116,9 @@ async function checkOrders() {
 
 				var currencyId = getFromBetween.get(sourceCode, '{"wallet_currency":', ',')[0];
 				var itemNameId = getFromBetween.get(sourceCode, 'Market_LoadOrderSpread( ', ' )')[0];
-				orderHref = `https://steamcommunity.com/market/itemordershistogram?language=english&currency=${currencyId}&item_nameid=${itemNameId}`;
+				var orderHrefJson = `https://steamcommunity.com/market/itemordershistogram?language=english&currency=${currencyId}&item_nameid=${itemNameId}`;
 				async function getSource() {
-					sourceCode = await httpGet(orderHref);
+					sourceCode = await httpGet(orderHrefJson);
 				}
 				await retryOnFailForSingle(4, 30000, getSource);
 				var avarageOfTwo = JSON.parse(sourceCode).sell_order_graph.map(a => a[0]).slice(0, 4).reduce((a, b) => a + b) / 4 - 0.01;
