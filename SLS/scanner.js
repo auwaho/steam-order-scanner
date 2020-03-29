@@ -59,7 +59,7 @@ chrome.storage.sync.get(["lowOrdersPctSLS"], function (result) {
 });
 
 
-//zzzzzzzzzzzzzzzz> SCAN FN <zzzzzzzzzzzzzzzz//
+//ZZZZZZZZZZZZZZ> SCAN FN <ZZZZZZZZZZZZZZ//
 async function checkOrders() {
 
 	window.stop();
@@ -106,9 +106,25 @@ async function checkOrders() {
 				break;
 			}
 
-			var tenPrices = getFromBetween.get(sourceCode, '<span class="market_listing_price market_listing_price_without_fee">', '</span>').map(s => s.replace(/\D+/g, '') * 1).filter(Number);
-			var fivePrices = tenPrices.slice(Math.max(tenPrices.length - 5, 1));
-			var steamPrice = fivePrices.reduce((a, b) => a + b, 0) / fivePrices.length;
+			var steamPrice;
+
+			if (sourceCode.includes('<div id="market_commodity_order_spread">')) {
+
+				var currencyId = getFromBetween.get(sourceCode, '{"wallet_currency":', ',')[0];
+				var itemNameId = getFromBetween.get(sourceCode, 'Market_LoadOrderSpread( ', ' )')[0];
+				orderHref = `https://steamcommunity.com/market/itemordershistogram?language=english&currency=${currencyId}&item_nameid=${itemNameId}`;
+				async function getSource() {
+					sourceCode = await httpGet(orderHref);
+				}
+				await retryOnFailForSingle(4, 30000, getSource);
+				var avarageOfTwo = JSON.parse(sourceCode).sell_order_graph.map(a => a[0]).slice(0, 4).reduce((a, b) => a + b) / 4 - 0.01;
+				steamPrice = avarageOfTwo < 0.16 ? (avarageOfTwo - 0.02) * 100 : Math.ceil(avarageOfTwo / 1.15 * 100);
+
+			} else {
+				var tenPrices = getFromBetween.get(sourceCode, '<span class="market_listing_price market_listing_price_without_fee">', '</span>').map(s => s.replace(/\D+/g, '') * 1).filter(Number);
+				var fivePrices = tenPrices.slice(Math.max(tenPrices.length - 5, 1));
+				steamPrice = fivePrices.reduce((a, b) => a + b, 0) / fivePrices.length;
+			}
 
 			//preventing false cancels (just in case)
 			if (isNaN(steamPrice) == true || steamPrice == 0) {
@@ -156,7 +172,7 @@ async function checkOrders() {
 	});
 }
 
-//zzzzzzzzzzzzzzzz> AUTO SCAN FN <zzzzzzzzzzzzzzzz//
+//ZZZZZZZZZZZZZZ> AUTO SCAN FN <ZZZZZZZZZZZZZZ//
 async function autoCheckOrders() {
 
 	window.stop();
@@ -207,7 +223,7 @@ async function autoCheckOrders() {
 }
 
 
-//zzzzzzzzzzzzzzzz> OTHER FNS <zzzzzzzzzzzzzzzz//
+//ZZZZZZZZZZZZZZ> OTHER FNS <ZZZZZZZZZZZZZZ//
 function getSessionId() {
 	var jsId = document.cookie.match(/sessionid=[^;]+/);
 	if (jsId != null) {
