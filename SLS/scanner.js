@@ -127,7 +127,7 @@ async function checkOrders() {
 			steamPrice = avarageOfTwo < 0.16 ? (avarageOfTwo - 0.02) * 100 : Math.ceil(avarageOfTwo / 1.15 * 100);
 
 		} else {
-			var tenPrices = getFromBetween.get(sourceCode, '<span class="market_listing_price market_listing_price_without_fee">', '</span>').map(s => s.replace(/\D+/g, '') * 1).filter(Number);
+			var tenPrices = getFromBetween.get(sourceCode, '<span class="market_listing_price market_listing_price_without_fee">', '</span>').map(s => s.replace(/[^\d^.^,]/g, '').replace(',','.') * 100).filter(Number);
 			var fivePrices = tenPrices.slice(Math.max(tenPrices.length - 5, 1));
 			steamPrice = fivePrices.reduce((a, b) => a + b, 0) / fivePrices.length;
 		}
@@ -147,7 +147,7 @@ async function checkOrders() {
 			}
 
 			order.style.backgroundColor = "#4C1C1C"; //change order color to red
-			console.log(`%c ${orderName} (${orderPrice / 100}): ${orderHref}`, 'color: red');
+			console.log(`%c ${orderName} (${orderPrice / 100}/${steamPrice / 100}): ${orderHref}`, 'color: red');
 
 		} else if (orderPrice < steamPrice * (100 - lowPct) / 100) {
 
