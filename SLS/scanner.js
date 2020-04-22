@@ -129,7 +129,7 @@ async function checkOrders() {
 		} else {
 			var tenPrices = getFromBetween.get(sourceCode, '<span class="market_listing_price market_listing_price_without_fee">', '</span>').map(s => s.replace(/[^\d^.^,]/g, '').replace(',','.') * 100).filter(Number);
 			var fivePrices = tenPrices.slice(Math.max(tenPrices.length - 5, 1));
-			steamPrice = fivePrices.reduce((a, b) => a + b, 0) / fivePrices.length;
+			steamPrice = fivePrices.reduce((a, b) => a + b, 0) / fivePrices.length - 1;
 		}
 
 		//preventing false cancels (just in case)
@@ -201,7 +201,7 @@ async function autoCheckOrders() {
 				return false;
 			}
 
-			var tenPrices = getFromBetween.get(sourceCode, '<span class="market_listing_price market_listing_price_without_fee">', "</span>").map(s => s.replace(/\D+/g, "") * 1).filter(Number);
+			var tenPrices = getFromBetween.get(sourceCode, '<span class="market_listing_price market_listing_price_without_fee">', "</span>").map(s => s.replace(/[^\d^.^,]/g, '').replace(',','.') * 100).filter(Number);
 			var fivePrices = tenPrices.slice(Math.max(tenPrices.length - 5, 1));
 			var steamPrice = fivePrices.reduce((a, b) => a + b, 0) / fivePrices.length;
 
