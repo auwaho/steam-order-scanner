@@ -1,7 +1,7 @@
 # Steam Order Scanner
 Google Chrome extension for Steam Community Market's work simplifying and semi-automating.
 
-![alt text](https://github.com/auwaho/SteamListingsScanner/blob/master/screenshot.png "Steam Listings Scanner")
+![alt text](https://github.com/auwaho/steam-order-scanner/blob/master/screenshot.png "Steam Listings Scanner")
 
 #### Extension functions for now: 
 - **scanning for relevance** your buy order list (individual listings/commodity type items). Marks each order with color (green = **ok**, yellow = **too low** (as set in popup window), red = **overpriced**)
@@ -13,6 +13,6 @@ Google Chrome extension for Steam Community Market's work simplifying and semi-a
 
 The extension changes the color of the text “My Buy Orders” to gold when scanning starts and back to white when scanning is completed.
 
-### [Download link](https://github.com/auwaho/SteamListingsScanner/releases/download/1.3.4/SLS.zip)
+### [Download link](https://github.com/auwaho/steam-order-scanner/releases/download/1.3.4/SLS.zip)
 
 **Note: I highly recommend starting the first scan without any cancel order marks, just to make sure the extension works correctly in your case. It was also noted that any extensions that modify the content on the market page may lead to incorrect extension work. Just make sure the market page is fully loaded before scanning.**
