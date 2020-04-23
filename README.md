@@ -1,4 +1,4 @@
-# Steam Listings Scanner
+# Steam Order Scanner
 Google Chrome extension for Steam Community Market's work simplifying and semi-automating.
 
 ![alt text](https://github.com/auwaho/SteamListingsScanner/blob/master/screenshot.png "Steam Listings Scanner")
