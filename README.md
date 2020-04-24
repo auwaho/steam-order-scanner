@@ -1,7 +1,7 @@
 <p align="center">
   <img width="128" height="128" src="https://github.com/auwaho/steam-order-scanner/blob/master/logo.png">
 </p>
-<h1 align="center">Steam Order Scanner (SORS)</h1>
+<h1 align="center">Steam Order Scanner</h1>
 
 <h3 align="center">
   <a href="https://github.com/auwaho/steam-order-scanner/releases/download/1.3.4/SORS.zip">Direct dowload link</a>
@@ -11,12 +11,12 @@
 
 ## Description
 
-SORS is a Google Chrome browser extension which main function is to scan your Steam Community Market orders for their relevance, as well as their cancellation if necessary. The extension also adds some useful functionality to the Market pages. More interesting features coming soon, wait for updates!
+Steam Order Scanner (SORS) is a Google Chrome browser extension which main function is to scan your Steam Community Market orders for their relevance, as well as their cancellation if necessary. The extension also adds some useful functionality to the Market pages. More interesting features coming soon, wait for updates!
 
 ![alt text](https://github.com/auwaho/steam-order-scanner/blob/master/screenshot.png "Steam Listings Scanner")
 
 #### Extension functions for now: 
-- **scanning for relevance** your buy order list (individual listings/commodity type items). Marks each order with color (green = **ok**, yellow = **too low** (as set in popup window), red = **overpriced**)
+- **scanning for relevance** your buy order list (individual listings/commodity type items). Marks each order with color (**green = ok**, **yellow = too low** (as set in popup window), **red = overpriced**)
 - **cancelling** overpriced or too low orders
 - displaying **"market_listing_price_without_fee"** under the price of each lot on the item page
 - ability to show **more buy orders and sales** (for commodity type items) on the item page. Quantity sets up in the popup window
