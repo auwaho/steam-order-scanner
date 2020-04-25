@@ -12,7 +12,7 @@
 ## Supporting the Project
 
 <p>Here you can support the project, motivate the author to devote more time to the introduction of new functions and the more frequent release of updates, or simply satisfy the needs of an avid coffee lover.</p>
-<a href="https://www.buymeacoff.ee/auwaho" target="_blank"><img width="200" src="https://i.imgur.com/C0cuR5r.png"></a>
+<a href="https://www.buymeacoff.ee/auwaho"><img width="200" src="https://i.imgur.com/C0cuR5r.png"></a>
 
 
 ## Description
