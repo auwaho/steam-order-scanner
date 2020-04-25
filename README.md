@@ -25,11 +25,6 @@ Steam Order Scanner (SORS) is a Google Chrome browser extension which main funct
 
 The extension changes the color of the text “My Buy Orders” to gold when scanning starts and back to white when scanning is completed.
 
-## Supporting the Project
-
-<p>Here you can support the project, motivate the author to devote more time to the introduction of new functions and the more frequent release of updates, or simply satisfy the needs of an avid coffee lover.</p>
-<a href="https://www.buymeacoff.ee/auwaho"><img width="200" src="https://i.imgur.com/C0cuR5r.png"></a>
-
 ## License
 
 Copyright (c) 2020 Artem Hryhorov
