@@ -9,12 +9,6 @@
 
 **Note: I highly recommend starting the first scan without any cancel order marks, just to make sure the extension works correctly in your case. It was also noted that any extensions that modify the content on the market page may lead to incorrect extension work. Just make sure the market page is fully loaded before scanning.**
 
-## Supporting the Project
-
-<p>Here you can support the project, motivate the author to devote more time to the introduction of new functions and the more frequent release of updates, or simply satisfy the needs of an avid coffee lover.</p>
-<a href="https://www.buymeacoff.ee/auwaho"><img width="200" src="https://i.imgur.com/C0cuR5r.png"></a>
-
-
 ## Description
 
 Steam Order Scanner (SORS) is a Google Chrome browser extension which main function is to scan your Steam Community Market orders for their relevance, as well as their cancellation if necessary. The extension also adds some useful functionality to the Market pages. More interesting features coming soon, wait for updates!
@@ -30,6 +24,11 @@ Steam Order Scanner (SORS) is a Google Chrome browser extension which main funct
 - **autoscan (experimental)**. Scans your order list with set interval. **Always cancels** overpriced orders. Doesn't cancel too low orders.
 
 The extension changes the color of the text “My Buy Orders” to gold when scanning starts and back to white when scanning is completed.
+
+## Supporting the Project
+
+<p>Here you can support the project, motivate the author to devote more time to the introduction of new functions and the more frequent release of updates, or simply satisfy the needs of an avid coffee lover.</p>
+<a href="https://www.buymeacoff.ee/auwaho"><img width="200" src="https://i.imgur.com/C0cuR5r.png"></a>
 
 ## License
 
