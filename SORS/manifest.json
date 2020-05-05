@@ -3,7 +3,7 @@
   "name": "Steam Order Scanner",
   "short_name": "SORS",
   "description": "Сhecks your market buy orders for relevance and cancels them (if necessary). Also adds some useful features.",
-  "version": "1.3.4",
+  "version": "1.4.4",
   "permissions": [
     "storage",
     "activeTab",
