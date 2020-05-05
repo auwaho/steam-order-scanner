@@ -96,7 +96,7 @@ if (window.location.href.indexOf(window.location.protocol + "//steamcommunity.co
   }
   const zoomCtrls = document.getElementsByClassName("zoom_controls pricehistory_zoom_controls")[0];
   var salesLabel = document.createElement("label");
-  salesLabel.innerHTML = `${salesPerDay} sold in the last 24 hours`;
+  salesLabel.innerHTML = `${salesPerDay} sold in the last 24 hours`.fontcolor('white');
   zoomCtrls.parentNode.insertBefore(salesLabel, zoomCtrls);
 
   // add prices without fee
