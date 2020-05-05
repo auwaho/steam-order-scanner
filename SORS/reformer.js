@@ -94,14 +94,10 @@ if (window.location.href.indexOf(window.location.protocol + "//steamcommunity.co
       break;
     }
   }
-  const salesStyle = document.createElement("style");
-  salesStyle.innerHTML = `
-    .jqplot-title::after {
-      content: " (${salesPerDay} sold in the last 24 hours)";
-      color: gold;
-    }
-  `;
-  document.head.appendChild(salesStyle);
+  const zoomCtrls = document.getElementsByClassName("zoom_controls pricehistory_zoom_controls")[0];
+  var salesLabel = document.createElement("label");
+  salesLabel.innerHTML = `${salesPerDay} sold in the last 24 hours`.fontcolor('gold');
+  zoomCtrls.parentNode.insertBefore(salesLabel, zoomCtrls.nextSibling);
 
   // add prices without fee
   if (document.getElementById("market_commodity_order_spread") == null) {
