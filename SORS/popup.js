@@ -120,6 +120,7 @@ scanButton.addEventListener("click", () => {
     cancelHighOrders.disabled = true;
     cancelLowOrders.disabled = true;
     lowOrdersPct.disabled = true;
+    timeoutPerOrder.disabled = true;
 
   } else {
     chrome.tabs.executeScript({
@@ -133,6 +134,7 @@ scanButton.addEventListener("click", () => {
     cancelHighOrders.disabled = false;
     cancelLowOrders.disabled = false;
     lowOrdersPct.disabled = false;
+    timeoutPerOrder.disabled = false;
 
   }
   scanButton.disabled = true;
