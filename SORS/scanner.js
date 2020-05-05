@@ -39,13 +39,13 @@ chrome.storage.sync.get(["timeoutPerOrderSLS"], function (result) {
 								if (orderList.length > 0) {
 									myBuyOrdersEl.style.color = "gold";
 									window.onload = checkOrders();
-									(async function listenForStop() {
+									!async function listenForStop() {
 										if (myBuyOrdersEl.style.color == "white") {
 											stopScan = true;
 											return false;
 										}
 										setTimeout(listenForStop, 500);
-									})();
+									}();
 								} else {
 									chrome.storage.sync.set({
 										scanButtonSLS: "start scan"
@@ -57,13 +57,13 @@ chrome.storage.sync.get(["timeoutPerOrderSLS"], function (result) {
 									scanDelay = result.autoScanOrdersDelaySLS;
 									myBuyOrdersEl.style.color = "gold";
 									window.onload = autoCheckOrders();
-									(async function listenForStop() {
+									!async function listenForStop() {
 										if (myBuyOrdersEl.style.color == "white") {
 											stopScan = true;
 											return false;
 										}
 										setTimeout(listenForStop, 500);
-									})();
+									}();
 								});
 							}
 						} else {
@@ -89,7 +89,7 @@ async function checkOrders() {
 		behavior: 'smooth'
 	});
 
-	for (var order of orderList) {
+	for (let order of orderList) {
 
 		var buy_orderid = order.id.substring(11);
 		var orderHref = order.getElementsByClassName('market_listing_item_name_link')[0].href;
