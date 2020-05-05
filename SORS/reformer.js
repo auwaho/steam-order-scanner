@@ -1,4 +1,4 @@
-//string finding function
+// string finding function
 String.prototype.extract = function (prefix, suffix) {
   s = this;
   var i = s.indexOf(prefix);
@@ -18,7 +18,7 @@ String.prototype.extract = function (prefix, suffix) {
   return s;
 };
 
-//source code getting function
+// source code getting function
 function httpGet(url) {
   return new Promise(function (resolve, reject) {
     var xhr = new XMLHttpRequest();
@@ -41,7 +41,7 @@ function httpGet(url) {
 }
 
 
-//for main market page (show remain orders)
+// for main market page (show remain orders)
 if (window.location.href == window.location.protocol + "//steamcommunity.com/market/" || window.location.href == window.location.protocol + "//steamcommunity.com/market") {
   lookForOrders()
   async function lookForOrders() {
@@ -79,21 +79,42 @@ if (window.location.href == window.location.protocol + "//steamcommunity.com/mar
 }
 
 
-//for market items pages
+// for market items pages
 if (window.location.href.indexOf(window.location.protocol + "//steamcommunity.com/market/listings/") != -1) {
 
+  const source = document.documentElement.outerHTML;
+
+  var salesPerDay = 0;
+  const salesGraph = JSON.parse(source.extract('var line1=', ';'));
+  const dayBefore = Date.parse(salesGraph[salesGraph.length - 1][0]) - 86400000;
+  for (let sale = salesGraph.length - 1; sale >= salesGraph.length - 24; sale--) {
+    if (Date.parse(salesGraph[sale][0]) > dayBefore) {
+      salesPerDay += parseInt(salesGraph[sale][2]);
+    } else {
+      break;
+    }
+  }
+  const salesStyle = document.createElement("style");
+  salesStyle.innerHTML = `
+    .jqplot-title::after {
+      content: " (${salesPerDay} sold in the last 24 hours)";
+      color: gold;
+    }
+  `;
+  document.head.appendChild(salesStyle);
+
+  // add prices without fee
   if (document.getElementById("market_commodity_order_spread") == null) {
-    //добавляем цены с учетом комиссии на странницах лотов
-    const style = document.createElement("style");
-    style.innerHTML = `
+    const feeStyle = document.createElement("style");
+    feeStyle.innerHTML = `
     .market_listing_price_without_fee {
     display: block;
     color: gray;
     }`;
-    document.head.appendChild(style);
+    document.head.appendChild(feeStyle);
   }
 
-  //show more orders and sales if enabled
+  // show more orders and sales if enabled
   chrome.storage.sync.get(["showMoreOrdersSLS"], function (result) {
     if (result.showMoreOrdersSLS == true) {
 
@@ -107,7 +128,6 @@ if (window.location.href.indexOf(window.location.protocol + "//steamcommunity.co
         document.getElementById("market_buyorder_info_details").style.display = 'block';
       }
 
-      const source = document.documentElement.outerHTML;
       const item_nameid = source.extract("Market_LoadOrderSpread( ", " );");
       const currency = source.extract('"wallet_currency":', ',') == '' ? 1 : source.extract('"wallet_currency":', ',');
       const country = source.extract('var g_strCountryCode = "', '"');
@@ -142,7 +162,7 @@ if (window.location.href.indexOf(window.location.protocol + "//steamcommunity.co
           qntSumm = qnt;
           tableRows += row;
         }
-        
+
         document.getElementById("market_commodity_buyreqeusts_table").outerHTML = `
         <table class="market_commodity_orders_table">
           <tbody>
