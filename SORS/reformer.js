@@ -40,19 +40,19 @@ function httpGet(url) {
   });
 }
 
-
 // for main market page (show remain orders)
 if (window.location.href == window.location.protocol + "//steamcommunity.com/market/" || window.location.href == window.location.protocol + "//steamcommunity.com/market") {
-  lookForOrders()
-  async function lookForOrders() {
-    await new Promise(done => setTimeout(() => done(), 8000));
-    if (document.body.contains(document.getElementById('my_market_buylistings_number')) == true) {
-      var qntDiv = document.getElementById('my_market_buylistings_number');
-      qntDiv.style.cursor = "pointer";
-      qntDiv.title = "Check remaining orders";
-      qntDiv.addEventListener("click", addQnt);
-    }
-  }
+
+  window.onload = function () {
+    setTimeout(function () {
+      if (document.body.contains(document.getElementById('my_market_buylistings_number')) == true) {
+        var qntDiv = document.getElementById('my_market_buylistings_number');
+        qntDiv.style.cursor = "pointer";
+        qntDiv.title = "Check remaining orders";
+        qntDiv.addEventListener("click", addQnt);
+      }
+    }, 5000);
+  };
 
   async function addQnt() {
     try {
