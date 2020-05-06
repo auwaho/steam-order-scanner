@@ -4,7 +4,7 @@
 <h1 align="center">Steam Order Scanner</h1>
 
 <h3 align="center">
-  <a href="https://github.com/auwaho/steam-order-scanner/releases/download/1.3.4/SORS.zip">Direct dowload link</a>
+  <a href="https://github.com/auwaho/steam-order-scanner/releases/download/1.4.5/SORS.zip">Direct dowload link</a>
 </h3>
 
 **Note: I highly recommend starting the first scan without any cancel order marks, just to make sure the extension works correctly in your case. It was also noted that any extensions that modify the content on the market page may lead to incorrect extension work. Just make sure the market page is fully loaded before scanning.**
