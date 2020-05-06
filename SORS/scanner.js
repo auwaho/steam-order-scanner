@@ -13,9 +13,7 @@ var cancelHigh;
 var cancelLow;
 var lowPct;
 var scanDelay;
-var stopScan = false;
 var orderList = [];
-var myBuyOrdersEl = document.getElementsByClassName("my_market_header_active")[document.getElementsByClassName("my_market_header_active").length - 1];
 
 chrome.storage.sync.get(["timeoutPerOrderSLS"], function (result) {
 	pause = result.timeoutPerOrderSLS;
@@ -37,15 +35,8 @@ chrome.storage.sync.get(["timeoutPerOrderSLS"], function (result) {
 									}
 								}
 								if (orderList.length > 0) {
-									myBuyOrdersEl.style.color = "gold";
+									document.cookie = "stopSORS=false";
 									window.onload = checkOrders();
-									!async function listenForStop() {
-										if (myBuyOrdersEl.style.color == "white") {
-											stopScan = true;
-											return false;
-										}
-										setTimeout(listenForStop, 500);
-									}();
 								} else {
 									chrome.storage.sync.set({
 										scanButtonSLS: "start scan"
@@ -55,19 +46,12 @@ chrome.storage.sync.get(["timeoutPerOrderSLS"], function (result) {
 							} else {
 								chrome.storage.sync.get(["autoScanOrdersDelaySLS"], function (result) {
 									scanDelay = result.autoScanOrdersDelaySLS;
-									myBuyOrdersEl.style.color = "gold";
+									document.cookie = "stopSORS=false";
 									window.onload = autoCheckOrders();
-									!async function listenForStop() {
-										if (myBuyOrdersEl.style.color == "white") {
-											stopScan = true;
-											return false;
-										}
-										setTimeout(listenForStop, 500);
-									}();
 								});
 							}
 						} else {
-							myBuyOrdersEl.style.color = "white";
+							document.cookie = "stopSORS=true";
 						}
 					})
 				});
@@ -89,7 +73,7 @@ async function checkOrders() {
 		behavior: 'smooth'
 	});
 
-	for (let order of orderList) {
+	for (var order of orderList) {
 
 		var buy_orderid = order.id.substring(11);
 		var orderHref = order.getElementsByClassName('market_listing_item_name_link')[0].href;
@@ -106,9 +90,9 @@ async function checkOrders() {
 		async function getSource() {
 			sourceCode = await httpGet(orderHref);
 		}
-		await retryOnFailForSingle(4, 30000, getSource);
+		await retryOnFailForSingle(9, 10000, getSource);
 
-		if (stopScan == true) {
+		if (getCookie('stopSORS') == 'true') {
 			break;
 		}
 
@@ -122,12 +106,12 @@ async function checkOrders() {
 			async function getSource() {
 				sourceCode = await httpGet(orderHrefJson);
 			}
-			await retryOnFailForSingle(4, 30000, getSource);
+			await retryOnFailForSingle(9, 10000, getSource);
 			var avarageOfTwo = JSON.parse(sourceCode).sell_order_graph.map(a => a[0]).slice(0, 4).reduce((a, b) => a + b) / 4 - 0.01;
 			steamPrice = avarageOfTwo < 0.16 ? (avarageOfTwo - 0.02) * 100 : Math.ceil(avarageOfTwo / 1.15 * 100);
 
 		} else {
-			var tenPrices = getFromBetween.get(sourceCode, '<span class="market_listing_price market_listing_price_without_fee">', '</span>').map(s => s.replace(/[^\d^.^,]/g, '').replace(',','.') * 100).filter(Number);
+			var tenPrices = getFromBetween.get(sourceCode, '<span class="market_listing_price market_listing_price_without_fee">', '</span>').map(s => s.replace(/[^\d^.^,]/g, '').replace(',', '.') * 100).filter(Number);
 			var fivePrices = tenPrices.slice(Math.max(tenPrices.length - 5, 1));
 			steamPrice = fivePrices.reduce((a, b) => a + b, 0) / fivePrices.length - 1;
 		}
@@ -143,7 +127,7 @@ async function checkOrders() {
 				async function sendPost() {
 					await httpPost('//steamcommunity.com/market/cancelbuyorder/', getSessionId(), buy_orderid);
 				}
-				await retryOnFailForSingle(4, 30000, sendPost);
+				await retryOnFailForSingle(9, 10000, sendPost);
 			}
 
 			order.style.backgroundColor = "#4C1C1C"; //change order color to red
@@ -155,7 +139,7 @@ async function checkOrders() {
 				async function sendPost() {
 					await httpPost('//steamcommunity.com/market/cancelbuyorder/', getSessionId(), buy_orderid);
 				}
-				await retryOnFailForSingle(4, 30000, sendPost);
+				await retryOnFailForSingle(9, 10000, sendPost);
 			}
 
 			order.style.backgroundColor = "#4C471C"; //change order color to orange
@@ -168,7 +152,8 @@ async function checkOrders() {
 	}
 
 	console.log('%c ■  single scan end  ■ ', 'background: #000000; color: #FFD700');
-	myBuyOrdersEl.style.color = "white";
+
+	document.cookie = "stopSORS=true";
 	chrome.storage.sync.set({
 		scanButtonSLS: "start scan"
 	});
@@ -196,12 +181,12 @@ async function autoCheckOrders() {
 			}
 			await retryOnFailForAuto(4, 30000, 10, getSource);
 
-			if (stopScan == true) {
+			if (getCookie('stopSORS') == 'true') {
 				console.log('%c ■  auto scan end  ■ ', 'background: #000000; color: #FFD700');
 				return false;
 			}
 
-			var tenPrices = getFromBetween.get(sourceCode, '<span class="market_listing_price market_listing_price_without_fee">', "</span>").map(s => s.replace(/[^\d^.^,]/g, '').replace(',','.') * 100).filter(Number);
+			var tenPrices = getFromBetween.get(sourceCode, '<span class="market_listing_price market_listing_price_without_fee">', "</span>").map(s => s.replace(/[^\d^.^,]/g, '').replace(',', '.') * 100).filter(Number);
 			var fivePrices = tenPrices.slice(Math.max(tenPrices.length - 5, 1));
 			var steamPrice = fivePrices.reduce((a, b) => a + b, 0) / fivePrices.length;
 
@@ -314,7 +299,7 @@ var getFromBetween = {
 };
 
 async function retryOnFailForSingle(attempts, delay, fn) {
-	if (stopScan == true) {
+	if (getCookie('stopSORS') == 'true') {
 		return false;
 	}
 	var tries = attempts;
@@ -330,7 +315,7 @@ async function retryOnFailForSingle(attempts, delay, fn) {
 }
 
 async function retryOnFailForAuto(attempts, delay, pause, fn) {
-	if (stopScan == true) {
+	if (getCookie('stopSORS') == 'true') {
 		return false;
 	}
 	var tries = attempts;
@@ -343,4 +328,11 @@ async function retryOnFailForAuto(attempts, delay, pause, fn) {
 		await new Promise(done => setTimeout(() => done(), delay));
 		return retryOnFailForAuto(tries - 1, delay, fn);
 	});
+}
+
+function getCookie(name) {
+	var matches = document.cookie.match(new RegExp(
+		"(?:^|; )" + name.replace(/([\.$?*|{}\(\)\[\]\\\/\+^])/g, '\\$1') + "=([^;]*)"
+	))
+	return matches ? decodeURIComponent(matches[1]) : undefined
 }
