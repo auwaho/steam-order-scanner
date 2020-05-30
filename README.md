@@ -16,13 +16,14 @@ Steam Order Scanner (SORS) is a Google Chrome browser extension which main funct
 ![alt text](https://github.com/auwaho/steam-order-scanner/blob/master/screenshot.png "Steam Listings Scanner")
 
 #### Extension functions for now: 
-- **single scan for profitability** your buy order list (individual listings/commodity type items). Marks each order with color (**green = ok**, **yellow = too low**, **red = overpriced**). Refers to your set values. Adding overpiced items after fully completed scan to report;
+- **single scan** your buy order list for profitability (individual listings and commodity type items). Marks each order with color (green = ok, yellow = too low, red = overpriced). Refers to your set values. Adding overpiced items after fully completed scan to report;
 - **autoscan** works by the same logic and uses the same settings as single scan but doesn't require market tab open. If you close the browser with the autoscan turned on, it will start itself when you open it;
-- **auto cancellation** overpriced or too low orders
+- **auto cancellation** overpriced or too low orders;
 - displaying **"market_listing_price_without_fee"** under the price of each lot on the item page;
 - ability to show **more buy orders and sales** (sales for commodity type items) on the item page. Quantity sets up in the popup window;
-- showing the **number of lots purchased** out of set number in each order on the main market page;
-- showing the **sum of orders/listings** near headers on the main market page.
+- showing **number of lots purchased** out of set number in each order on the main market page;
+- showing **sum of orders and listings** near headers on the main market page;
+- showing **last 24 hours sold items quantity** under median sales graph on the item page. 
 
 ## Supporting the project
 
