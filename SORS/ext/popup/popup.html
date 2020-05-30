@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <link rel="stylesheet" href="popup.css">
+  <meta charset="utf-8">
+</head>
+
+<body style="line-height:175%;">
+
+  <p>
+    <label>Go to the</label>
+    <a href="http://steamcommunity.com/market/" target="_blank">market page</a>
+    <label>and</label>
+    <button id="scanButton" class="btn" disabled>start scan</button><br>
+    <a href="../report/report.html" target="_blank" id="scanReport">View last full scan report</a>
+  </p>
+
+  <label class="title">Scan options:
+    <label class="help" title=">
+      All option values are taken into account (except autoscan value) whether or not the option is enabled!
+      Scan options info:
+      1.  Cancel if profit less (±%): mark order & cancel (if checked) if profit percent less then indicated value.
+      2.  Cancel if profit more (%): mark order & cancel (if checked) ifprofit percent more then indicated value.
+      3.  Autoscan every (min): scans all your buy orders with set interval. Does not require any tab open. Opens 
+          market tab (if it not opened) only on order cancel, if checked. Note: If you close this  page before it
+          will be loaded, order cancelation will fail. If browser closed with scan running, it will automatically
+          resume after browser open.
+      4.  Pause when errors (min): pauses scanning after several errors of the same type in a row.
+      5.  Timeout per order (ms): pause between checking each order. Adjust this value so that in your case Steam 
+          does not ban requests for spam.
+      _
+      ">?
+    </label>
+  </label>
+  <hr>
+
+  <p>
+    <input type="checkbox" id="cancelHighOrders" name="cancelHighOrders" unchecked />
+    <label for="cancelHighOrders">Cancel if profit less (&plusmn;%)</label>
+    <input type="number" id="highOrdersPct" class="txtBx" min="-99"max="99" /><br>
+
+    <input type="checkbox" id="cancelLowOrders" name="cancelLowOrders" unchecked />
+    <label for="cancelLowOrders">Cancel if profit more (%)</label>
+    <input type="number" id="lowOrdersPct" class="txtBx" min="1" max="999" /><br>
+
+    <input type="checkbox" id="autoScanOrders" name="autoScanOrders" unchecked />
+    <label for="autoScanOrders">Autoscan every (min)</label>
+    <input type="number" id="autoScanOrdersDelay" class="txtBx" min="1" max="999" /><br>
+
+    <label for="pauseWhenErrors">Pause when errors (min)</label>
+    <input type="number" id="pauseWhenErrors" class="txtBx" min="1" max="99999" /><br>
+
+    <label for="timeoutPerOrder">Timeout per order (ms)</label>
+    <input type="number" id="timeoutPerOrder" class="txtBx" min="1" max="99999" /><br>
+  </p>
+
+  <label class="title">Market customization:
+    <label class="help" title=">
+      Show more buy orders: expands buy/sell request tables with set value on the item pages if it possible.
+      Also there are few more useful things by default such as:
+        • showing lot prices without fee on the item pages
+        • showing number of sold items in the last 24 hours in the left bottom corner of median sale prices
+          graph on the item page
+        • showing sum of all orders and sell listings on the main market page near headers
+        • adding left/was quantity to all orders on the main market page 
+      _ 
+      ">?
+    </label>
+  </label>
+  <hr>
+
+  <p>
+    <input type="checkbox" id="showMoreOrders" name="showMoreOrders" checked />
+    <label for="showMoreOrders">Show more buy orders</label>
+    <input type="number" id="showMoreOrdersQnt" class="txtBx" min="1" max="999" /><br>
+  </p>
+
+  <script type="text/javascript" src="popup.js"></script>
+
+</body>
+
+</html>

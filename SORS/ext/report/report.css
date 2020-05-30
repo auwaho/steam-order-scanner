@@ -1,0 +1,28 @@
+body {
+    font-size: 16px;
+}
+table {
+    width: 70%;
+    border-collapse: collapse; 
+    margin-left: auto; 
+    margin-right: auto;
+}
+table td{
+    line-height: 25px;
+    padding-left: 10px;
+}
+td:nth-child(1) {
+    width: 5%;
+}
+td:nth-child(2) {
+    width: 10%;
+}
+td:nth-child(3) {
+    width: 35%;
+}
+td:nth-child(4) {
+    width: 10%;
+}
+td:nth-child(5) {
+    width: 10%;
+}

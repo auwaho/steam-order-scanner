@@ -2,8 +2,8 @@
   "manifest_version": 2,
   "name": "Steam Order Scanner",
   "short_name": "SORS",
-  "description": "Сhecks your market buy orders for relevance and cancels them (if necessary). Also adds some useful features.",
-  "version": "1.4.5",
+  "description": "Helps keep your market buy orders profitable. Also adds some useful features.",
+  "version": "1.7.0",
   "permissions": [
     "storage",
     "activeTab",
@@ -12,26 +12,32 @@
     "*://localhost/*"
   ],
   "browser_action": {
-    "default_icon": "icon.png",
-    "default_popup": "popup.html"
+    "default_icon": "ext/icon.png",
+    "default_popup": "ext/popup/popup.html"
   },
   "icons": {
-    "48": "icon.png"
+    "48": "ext/icon.png"
   },
   "background": {
-    "scripts": [
-      "background.js"
-    ]
+    "scripts": ["ext/background.js"]
   },
-  "content_scripts": [
-    {
+  "content_scripts": [{
       "matches": [
         "*://steamcommunity.com/market/",
-        "*://steamcommunity.com/market/listings/*"
+        "*://steamcommunity.com/market/#",
+        "*://steamcommunity.com/market"
       ],
-      "js": [
-        "reformer.js"
-      ],
+      "js": ["site/market.js"],
+      "run_at": "document_end"
+    },
+    {
+      "matches": ["*://steamcommunity.com/market/listings/*/*"],
+      "js": ["site/listings.js"],
+      "run_at": "document_end"
+    },
+    {
+      "matches": ["*://steamcommunity.com/*"],
+      "js": ["site/cancel.js"],
       "run_at": "document_end"
     }
   ]

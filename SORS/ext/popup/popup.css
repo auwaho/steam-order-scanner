@@ -1,0 +1,72 @@
+body {
+    background-color: rgb(20, 20, 20);
+    margin: 0px !important;
+    width: 245px;
+    border: 1px solid gold;
+    padding: 0px 10px 0px 10px;
+}
+
+label {
+    color: rgb(230, 230, 230);
+}
+
+input {
+    background-color: rgb(230, 230, 230);
+    color: black;
+    text-align: center;
+    font-size: 12px;
+    height: 12px;
+    line-height: 12px;
+    margin-top: 2px;
+    margin-left: 0;
+    display: inline-block;
+    vertical-align: middle;
+}
+
+input[type="checkbox"] {
+    margin-bottom: 5px;
+}
+
+hr {
+    border: none;
+    color: gold;
+    background-color: gold;
+    height: 1px;
+    padding: 0;
+    margin: 0;
+}
+
+.btn {
+    float: right;
+    width: 74px;
+}
+
+.txtBx {
+    float: right;
+    width: 70px;
+    vertical-align: middle;
+}
+
+.title {
+    font-size: 14px;
+    font-weight: bold;
+}
+
+.help {
+    margin-top: 5px;
+    font-size: 10px;
+    background-color: white;
+    border-radius: 7px;
+    color: black;
+    width: 12px;
+    height: 12px;
+    float: right !important;
+    line-height: 12px;
+    text-align: center;
+    font-weight: bold;
+}
+
+#scanReport,
+#optInfo {
+    font-size: 90%;
+}
