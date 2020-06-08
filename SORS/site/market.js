@@ -45,7 +45,7 @@ if (orderList.length > 1) {
                     }
                 }
             }
-            my_market_buylistings_number.innerHTML = `QTY: <b>${my_market_buylistings_number.innerHTML}</b> / SUM: <b>${parseFloat(ordersSum).toFixed(2)}</b>`;
+            my_market_buylistings_number.innerHTML = `QTY: <b>${myList.buy_orders.length}</b> / SUM: <b>${parseFloat(ordersSum).toFixed(2)}</b>`;
             my_market_selllistings_number.innerHTML = `QTY: <b>${listingsQty}</b> / SUM: <b>${parseFloat((listingsSum+listingsFee)/100).toFixed(2)}</b> / SWF: <b>${parseFloat(listingsSum/100).toFixed(2)}</b>`;
         } catch (e) {
             //console.log(e);
