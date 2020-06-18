@@ -28,10 +28,3 @@ Steam Order Scanner (SORS) is a Google Chrome browser extension which main funct
 ## Supporting the project
 
 If you find the project useful, you can help its further development. The best and easiest way to do this is to ⭐ **Star** it. There are also several links inside the 💗 **Sponsor** button if you want to provide additional help. Also, if you have any ideas for the development of the project, you can send them to me at the email address indicated in the profile.
-
-## License
-
-Copyright © 2020 Artem Hryhorov
-
-This software is released under the terms of the GNU General Public License v3.0.
-See the [LICENSE](LICENSE) file for further information.
