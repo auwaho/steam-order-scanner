@@ -13,7 +13,7 @@
 
 Steam Order Scanner (SORS) is a Google Chrome browser extension which main function is to keep your Steam Community Market buy orders profitable. The extension also adds some useful functionality to the Market pages. More interesting features coming soon, wait for updates!
 
-![alt text](https://github.com/auwaho/steam-order-scanner/blob/master/screenshot.png "Steam Listings Scanner")
+![alt text](https://github.com/auwaho/steam-order-scanner/blob/master/screenshots/screenshot.png "Steam Listings Scanner")
 
 #### Extension functions for now: 
 - **single scan** your buy order list for profitability (individual listings and commodity type items). Marks each order with color (green = ok, yellow = too low, red = overpriced). Refers to your set values. Adding overpiced items after fully completed scan to report;
