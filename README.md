@@ -28,6 +28,8 @@ Steam Order Scanner (SORS) is a Google Chrome browser extension which main funct
 
 ![alt text](https://github.com/auwaho/steam-order-scanner/blob/master/screenshots/screenshot_6.png "Steam Listings Scanner")
 
+![alt text](https://github.com/auwaho/steam-order-scanner/blob/master/screenshots/screenshot_7.png "Steam Listings Scanner")
+
 </details>
 
 #### Extension functions for now: 
