@@ -1,16 +1,3 @@
-String.prototype.extract = function (t, r) {
-  s = this;
-  var e = s.indexOf(t);
-  if (!(e >= 0)) return "";
-  if (s = s.substring(e + t.length), r) {
-    if (!((e = s.indexOf(r)) >= 0)) return "";
-    s = s.substring(0, e)
-  }
-  return s
-};
-
-const source = document.documentElement.outerHTML;
-
 /*
   Steam Order Scanner - a browser extension for Steam Community Market 
   that helps keep your orders profitable.
@@ -31,6 +18,19 @@ const source = document.documentElement.outerHTML;
 
   Home: https://github.com/auwaho/steam-order-scanner
 */
+
+String.prototype.extract = function (t, r) {
+  s = this;
+  var e = s.indexOf(t);
+  if (!(e >= 0)) return "";
+  if (s = s.substring(e + t.length), r) {
+    if (!((e = s.indexOf(r)) >= 0)) return "";
+    s = s.substring(0, e)
+  }
+  return s
+};
+
+const source = document.documentElement.outerHTML;
 
 // get last 24 hours sales
 var salesPerDay = 0;
