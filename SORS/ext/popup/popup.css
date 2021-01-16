@@ -1,12 +1,12 @@
 body {
     background-color: rgb(20, 20, 20);
     margin: 0px !important;
-    width: 245px;
+    width: 250px;
     border: 1px solid gold;
     padding: 0px 10px 0px 10px;
 }
 
-label {
+p, label {
     color: rgb(230, 230, 230);
 }
 

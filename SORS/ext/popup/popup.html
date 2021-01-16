@@ -9,9 +9,9 @@
 <body style="line-height:175%;">
 
   <p>
-    <label>Go to the</label>
+    Go to the
     <a href="http://steamcommunity.com/market/" target="_blank">market page</a>
-    <label>and</label>
+    and
     <button id="scanButton" class="btn" disabled>start scan</button><br>
     <a href="../report/report.html" target="_blank" id="scanReport">View last full scan report</a>
   </p>
@@ -35,10 +35,10 @@
   </label>
   <hr>
 
-  <p>
+  <form>
     <input type="checkbox" id="cancelHighOrders" name="cancelHighOrders" unchecked />
     <label for="cancelHighOrders">Cancel if profit less (&plusmn;%)</label>
-    <input type="number" id="highOrdersPct" class="txtBx" min="-99"max="99" /><br>
+    <input type="number" id="highOrdersPct" class="txtBx" min="-99" max="99" /><br>
 
     <input type="checkbox" id="cancelLowOrders" name="cancelLowOrders" unchecked />
     <label for="cancelLowOrders">Cancel if profit more (%)</label>
@@ -53,7 +53,7 @@
 
     <label for="timeoutPerOrder">Timeout per order (ms)</label>
     <input type="number" id="timeoutPerOrder" class="txtBx" min="1" max="99999" /><br>
-  </p>
+  </form>
 
   <label class="title">Market customization
     <label class="help" title=">
