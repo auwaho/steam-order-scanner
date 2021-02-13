@@ -3,7 +3,7 @@
   "name": "Steam Order Scanner",
   "short_name": "SORS",
   "description": "Helps keep your market buy orders profitable. Also adds some useful features.",
-  "version": "1.7.0",
+  "version": "1.7.1",
   "permissions": [
     "storage",
     "activeTab",
