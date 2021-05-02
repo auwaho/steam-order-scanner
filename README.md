@@ -3,8 +3,11 @@
 </p>
 <h1 align="center">Steam Order Scanner</h1>
 
+<p align="center">
+  <a href="https://chrome.google.com/webstore/detail/steam-order-scanner/poaddkofidcihbbodleahclcjoghdilh"><img src="https://storage.googleapis.com/chrome-gcs-uploader.appspot.com/image/WlD8wC6g8khYWPJUsQceQkhXSlv1/iNEddTyWiMfLSwFD6qGq.png" alt="Get uBlock Origin for Firefox"></a> 
+</p>
+
 <h3 align="center">
-  <a href="https://storage.googleapis.com/chrome-gcs-uploader.appspot.com/image/WlD8wC6g8khYWPJUsQceQkhXSlv1/iNEddTyWiMfLSwFD6qGq.png" alt="Get Steam Order Scanner for Google Chrome"></a> 
   <a href="https://github.com/auwaho/steam-order-scanner/releases/download/1.7.0/SORS.zip">Direct dowload link</a>
 </h3>
 
