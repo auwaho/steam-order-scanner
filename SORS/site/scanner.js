@@ -20,14 +20,12 @@
 */
 
 window.onbeforeunload = function () {
-    return false
-}
-onunload = function () {
     if (chrome.runtime?.id) {
         chrome.storage.local.set({
             scanButtonSORS: 'start'
         })
     }
+    return false
 }
 
 var orderList = []
@@ -130,6 +128,7 @@ async function startScan() {
 
     for (var oldOrder of orderList) {
         oldOrder.style.backgroundColor = 'rgba(0, 0, 0, 0.2)'
+        oldOrder.style.border = '1px solid rgba(0, 0, 0, 0)'
     }
     orderList[0].scrollIntoView({
         block: 'center',
@@ -142,7 +141,7 @@ async function startScan() {
     var suffix = ''
     var table = []
 
-    var myListingsJson = await httpGetRetry('https://steamcommunity.com/market/mylistings/?norender=1')
+    var myListingsJson = await fetchWithRetry('https://steamcommunity.com/market/mylistings/?norender=1')
 
     if (stopScan) return
 
@@ -156,11 +155,11 @@ async function startScan() {
 
         var appId = parseInt(orderObj.appid)
         var hashName = orderObj.hash_name
-        var orderHref = `https://steamcommunity.com/market/listings/${appId}/${encodeURIComponent(hashName)}`
+        var orderHref = `https://steamcommunity.com/market/listings/${appId}/${fixedEncodeURIComponent(hashName)}`
         var orderPrice = parseInt(orderObj.price)
         // var qty = parseInt(orderObj.quantity);
         // var qtyRemaining = parseInt(orderObj.quantity_remaining);
-        var sourceCode = await httpGetRetry(orderHref)
+        var sourceCode = await fetchWithRetry(orderHref)
 
         if (stopScan) {
             console.log('%c ■  single scan end  ■ ', 'background: #000000; color: #FFD700')
@@ -181,9 +180,9 @@ async function startScan() {
         }
 
         var itemNameId = getFromBetween.get(sourceCode, 'Market_LoadOrderSpread( ', ' )')[0]
-        var itemGraphLink = `https://steamcommunity.com/market/itemordershistogram?language=english&currency=${g_rgWalletInfo.wallet_currency}&item_nameid=${itemNameId}`
+        var itemGraphLink = `https://steamcommunity.com/market/itemordershistogram?country=${g_rgWalletInfo.wallet_country}&language=english&currency=${g_rgWalletInfo.wallet_currency}&item_nameid=${itemNameId}&two_factor=0`
 
-        var itemGraphJson = await httpGetRetry(itemGraphLink)
+        var itemGraphJson = await fetchWithRetry(itemGraphLink)
 
         if (stopScan) return
 
@@ -219,14 +218,11 @@ async function startScan() {
             continue
         }
 
-        if (orderPrice == firstOrderPrice) {
-            if (cancelFirstOrders) {
-                httpPost('//steamcommunity.com/market/cancelbuyorder/', sessionId, orderId)
-            }
+        const isFirstInQueue = orderPrice == firstOrderPrice
+        const isUnprofitable = (marketPrice * (100 - cancelHighPercent)) / 100 < orderPrice
 
-            order.style.backgroundColor = '#4C471C' //change order color to orange
-        }
-        if ((marketPrice * (100 - cancelHighPercent)) / 100 < orderPrice) {
+        // add to bad orders array
+        if (isFirstInQueue || isUnprofitable) {
             var breakEvenPoint = CalculateAmountToSendForDesiredReceivedAmount(
                 orderPrice,
                 g_rgWalletInfo.wallet_publisher_fee_percent_default
@@ -241,17 +237,31 @@ async function startScan() {
             var tdMarketWithFee = (marketPriceWithFee / 100).toFixed(2)
             var td1st = orderPrice == firstOrderPrice
 
-            // add to bad orders array
             table.push([appId, hashName, tdOrder, tdOrderBEP, tdMarket, tdMarketWithFee, td1st])
+        }
 
-            if (cancelHighOrders) {
-                httpPost('//steamcommunity.com/market/cancelbuyorder/', sessionId, orderId)
+        if (isFirstInQueue) {
+            if (cancelFirstOrders) {
+                cancelBuyOrder('//steamcommunity.com/market/cancelbuyorder/', sessionId, orderId)
             }
 
-            order.style.backgroundColor = '#4C1C1C' //change order color to red
+            // order is first in queue, change order border to yellow
+            order.style.border = '1px solid #FFD700'
+        }
+
+        if (isUnprofitable) {
+            if (cancelHighOrders) {
+                cancelBuyOrder('//steamcommunity.com/market/cancelbuyorder/', sessionId, orderId)
+            }
+
+            // order is unprofitable, change order bg color to red
+            order.style.backgroundColor = '#4C1C1C'
+
+            // log unprofitable order
             console.log(`%c ${hashName} (${orderPrice / 100}/${marketPrice / 100}): ${orderHref}`, 'color: red')
         } else {
-            order.style.backgroundColor = '#1C4C1C' //change order color to green
+            // order is profitable, change order bg color to green
+            order.style.backgroundColor = '#1C4C1C'
         }
 
         console.log('Check')
@@ -284,61 +294,60 @@ function random(min, max) {
     return Math.floor(Math.random() * (max - min + 1) + min)
 }
 
-function httpGet(url) {
+function fetchUrl(url) {
     return new Promise(function (resolve, reject) {
-        var xhr = new XMLHttpRequest()
-        xhr.open('GET', url, true)
-        xhr.onload = function () {
-            if (this.status == 200) {
-                resolve(this.response)
-            } else {
-                var error = new Error(this.statusText)
-                error.code = this.status
+        fetch(url)
+            .then((response) => {
+                if (response.ok) {
+                    chrome.storage.local.set({ scanErrorSORS: false })
+                    resolve(response.text())
+                } else {
+                    var error = new Error(response.statusText)
+                    reject(error)
+                }
+            })
+            .catch((error) => {
                 reject(error)
-            }
-        }
-        xhr.onerror = function () {
-            reject(new Error('Network Error'))
-        }
-        xhr.send()
+            })
     })
 }
 
-async function httpGetRetry(url, attempts = 5) {
-    return await httpGet(url).catch(async function () {
+async function fetchWithRetry(url, attempts = 5) {
+    return await fetchUrl(url).catch(async function () {
         chrome.storage.local.set({ scanErrorSORS: true })
 
         if (attempts == 5) {
             await wait(5000)
-            return httpGetRetry(url, attempts - 1)
+            return fetchWithRetry(url, attempts - 1)
         } else if (attempts <= 0) {
             await wait(pauseOnErrors * 60000)
-            return httpGetRetry(url, (attempts = 5))
+            return fetchWithRetry(url, 5)
         }
         await wait(10000)
-        return httpGetRetry(url, attempts - 1)
+        return fetchWithRetry(url, attempts - 1)
     })
 }
 
-function httpPost(url, sessionid, buy_orderid) {
-    return new Promise(function (resolve, reject) {
-        var xhr = new XMLHttpRequest()
-        var params = `sessionid=${sessionid}&buy_orderid=${buy_orderid}`
-        xhr.open('POST', url, true)
-        xhr.setRequestHeader('Content-type', 'application/x-www-form-urlencoded')
-        xhr.onreadystatechange = function () {
-            if (this.status == 200) {
-                resolve(this.response)
-            } else {
-                var error = new Error(this.statusText)
-                error.code = this.status
-                reject(error)
-            }
+async function cancelBuyOrder(url, sessionid, buy_orderid) {
+    const params = `sessionid=${sessionid}&buy_orderid=${buy_orderid}`
+
+    return fetch(url, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded'
+        },
+        body: params
+    }).then((response) => {
+        if (!response.ok) {
+            throw new Error(response.statusText)
         }
-        xhr.onerror = function () {
-            reject(new Error('Network Error'))
-        }
-        xhr.send(params)
+        return response.text()
+    })
+}
+
+function fixedEncodeURIComponent(str) {
+    return encodeURIComponent(str).replace(/[!'()*]/g, function (c) {
+        return '%' + c.charCodeAt(0).toString(16)
     })
 }
 

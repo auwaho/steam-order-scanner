@@ -49,18 +49,18 @@ chrome.storage.local.get(
             <td><a href="https://steamcommunity.com/market/listings/${e[0]}/${encodeURIComponent(
                 e[1]
             )}" target="_blank">${e[1]}</a></td>
-            <td>${e[8] == true ? '+' : '-'}</td>
+            <td>${e[6] == true ? '+' : '-'}</td>
             <td data-sort="${e[2]}">
-               ${pref + e[2] + suff}
-               <span title="Break-even point.">(${pref + e[3] + suff})</span>
+                ${pref + e[2] + suff}
+                <span title="Break-even point.">(${pref + e[3] + suff})</span>
             </td>
             <td data-sort="${e[5]}">
-               ${pref + e[5] + suff}
-               <span title="This is how much you will receive.">(${pref + e[4] + suff})</span>
+                ${pref + e[5] + suff}
+                <span title="This is how much you will receive.">(${pref + e[4] + suff})</span>
             </td>
             <td data-sort="${profitPercent}">
-               ${profitPercent}%
-               <span title="Net profit.">(${profit})</span>
+                ${profitPercent}%
+                <span title="Net profit.">(${profit})</span>
             </td>
             </tr>
             `
