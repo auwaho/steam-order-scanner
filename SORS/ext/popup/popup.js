@@ -21,175 +21,143 @@
 
 // load extension settings
 chrome.storage.local.get(
-  [
-    'cancelHighOrdersSLS',
-    'cancelLowOrdersSLS',
-    'showMoreOrdersSLS',
-    'showMoreOrdersQntSLS',
-    'autoScanOrdersSLS',
-    'autoScanOrdersDelaySLS',
-    'highOrdersPctSLS',
-    'lowOrdersPctSLS',
-    'timeoutPerOrderSLS',
-    'pauseWhenErrorsSLS',
-    'scanButtonSLS'
-  ],
-  function (result) {
-    cancelHighOrders.checked = result.cancelHighOrdersSLS;
-    cancelLowOrders.checked = result.cancelLowOrdersSLS;
-    showMoreOrders.checked = result.showMoreOrdersSLS;
-    showMoreOrdersQnt.value = result.showMoreOrdersQntSLS;
-    autoScanOrders.checked = result.autoScanOrdersSLS;
-    autoScanOrdersDelay.value = result.autoScanOrdersDelaySLS;
-    highOrdersPct.value = result.highOrdersPctSLS;
-    lowOrdersPct.value = result.lowOrdersPctSLS;
-    timeoutPerOrder.value = result.timeoutPerOrderSLS;
-    pauseWhenErrors.value = result.pauseWhenErrorsSLS;
-    scanButton.innerText = result.scanButtonSLS;
+    [
+        'scanButtonSORS',
+        'backgroundScanSORS',
+        'backgroundScanDelaySORS',
+        'cancelHighOrdersSORS',
+        'cancelHighPercentSORS',
+        'cancelFirstOrdersSORS',
+        'pauseOnErrorsSORS',
+        'delayPerOrderSORS',
+        'delayRandomSORS',
+        'showMoreOrdersSORS',
+        'showMoreOrdersQtySORS'
+    ],
+    function (result) {
+        scanButton.innerText = result.scanButtonSORS;
+        backgroundScan.checked = result.backgroundScanSORS;
+        backgroundScanDelay.value = result.backgroundScanDelaySORS;
+        cancelHighOrders.checked = result.cancelHighOrdersSORS;
+        cancelHighPercent.value = result.cancelHighPercentSORS;
+        cancelFirstOrders.checked = result.cancelFirstOrdersSORS;
+        pauseOnErrors.value = result.pauseOnErrorsSORS;
+        delayPerOrder.value = result.delayPerOrderSORS;
+        delayRandom.value = result.delayRandomSORS;
+        showMoreOrders.checked = result.showMoreOrdersSORS;
+        showMoreOrdersQty.value = result.showMoreOrdersQtySORS;
 
-    if (result.scanButtonSLS == 'stop scan') {
-      autoScanOrders.disabled = true;
+        scanButton.dataset.active = result.scanButtonSORS == 'stop';
+
+        if (result.scanButtonSORS == 'stop') {
+            backgroundScan.disabled = true;
+        }
+
+        // turn off button everywhere except steam market page
+        chrome.tabs.query({
+            'active': true,
+            'lastFocusedWindow': true
+        }, function (tabs) {
+            if (tabs[0].url == 'https://steamcommunity.com/market/' || tabs[0].url == 'https://steamcommunity.com/market' || result.backgroundScanSORS == true) {
+                scanButton.disabled = false;
+            }
+        });
     }
-
-    // turn off button everywhere except steam market page
-    chrome.tabs.query({
-      'active': true,
-      'lastFocusedWindow': true
-    }, function (tabs) {
-      if (tabs[0].url == 'https://steamcommunity.com/market/' || tabs[0].url == 'https://steamcommunity.com/market' || result.autoScanOrdersSLS == true) {
-        scanButton.disabled = false;
-      }
-    });
-  }
 );
 
 // update button text if ext window open while scan ends
 chrome.storage.onChanged.addListener(function (changes, namespace) {
-  if (namespace == 'local' && 'scanButtonSLS' in changes) {
-    if (changes.scanButtonSLS.newValue == 'start scan') {
+    if (namespace == 'local' && 'scanButtonSORS' in changes) {
+        if (changes.scanButtonSORS.newValue == 'start') {
 
-      scanButton.innerText = 'start scan';
-      autoScanOrders.disabled = false;
+            scanButton.innerText = 'start';
+            backgroundScan.disabled = false;
+            scanButton.dataset.active = false;
 
-      if (autoScanOrders.checked == true) {
-        chrome.storage.local.set({
-          runAutoScanSLS: false
-        });
-      }
+            if (backgroundScan.checked == true) {
+                chrome.storage.local.set({
+                    runAutoScanSORS: false
+                });
+            }
 
-    } else {
+        } else {
 
-      if (autoScanOrders.checked == false) {
-        chrome.tabs.executeScript({
-          file: 'site/scanner.js'
-        });
-      } else {
-        chrome.storage.local.set({
-          runAutoScanSLS: true
-        });
-      }
+            if (backgroundScan.checked == false) {
 
-      scanButton.innerText = 'stop scan';
-      autoScanOrders.disabled = true;
+                chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
+                    var currTab = tabs[0];
+                    if (currTab) {
+                        chrome.scripting.executeScript({
+                            target: { tabId: currTab.id, allFrames: true },
+                            files: ['site/scanner.js']
+                        });
+                    }
+                });
 
+            } else {
+                chrome.storage.local.set({
+                    runAutoScanSORS: true
+                });
+            }
+
+            scanButton.innerText = 'stop';
+            backgroundScan.disabled = true;
+            scanButton.dataset.active = true;
+        }
     }
-  }
 });
+
+async function getCurrentTab() {
+    chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
+        var currTab = tabs[0];
+        if (currTab) return currTab;
+    });
+}
+
 
 // update settings onchange
-cancelHighOrders.addEventListener('change', e => {
-  if (e.target.checked) {
-    chrome.storage.local.set({
-      cancelHighOrdersSLS: true
+document.querySelectorAll('input').forEach(el => {
+
+    el.addEventListener('change', () => {
+
+        if (el.type == 'number') {
+            let value = el.value;
+            if (value == '') value = el.placeholder;
+            if (value > el.max) value = el.max;
+            if (value < el.min) value = el.min;
+
+            el.value = value;
+            chrome.storage.local.set({ [`${el.id}SORS`]: value });
+        }
+
+        if (el.type == 'checkbox') {
+            chrome.storage.local.set({ [`${el.id}SORS`]: el.checked });
+
+            if (el.id == 'backgroundScan') {
+                chrome.tabs.query({
+                    'active': true,
+                    'lastFocusedWindow': true
+                }, function (tabs) {
+                    if (tabs[0] == undefined || (tabs[0].url != 'https://steamcommunity.com/market/' & tabs[0].url != 'https://steamcommunity.com/market')) {
+                        scanButton.disabled = !el.checked;
+                    }
+                });
+            }
+        }
+
     });
-  } else {
-    chrome.storage.local.set({
-      cancelHighOrdersSLS: false
-    });
-  }
 });
-cancelLowOrders.addEventListener('change', e => {
-  if (e.target.checked) {
-    chrome.storage.local.set({
-      cancelLowOrdersSLS: true
-    });
-  } else {
-    chrome.storage.local.set({
-      cancelLowOrdersSLS: false
-    });
-  }
-});
-showMoreOrders.addEventListener('change', e => {
-  if (e.target.checked) {
-    chrome.storage.local.set({
-      showMoreOrdersSLS: true
-    });
-  } else {
-    chrome.storage.local.set({
-      showMoreOrdersSLS: false
-    });
-  }
-});
-showMoreOrdersQnt.addEventListener('change', () => {
-  chrome.storage.local.set({
-    showMoreOrdersQntSLS: showMoreOrdersQnt.value
-  });
-});
-autoScanOrders.addEventListener('change', e => {
-  if (e.target.checked) {
-    chrome.storage.local.set({
-      autoScanOrdersSLS: true
-    });
-    scanButton.disabled = false;
-  } else {
-    chrome.storage.local.set({
-      autoScanOrdersSLS: false
-    });
-    chrome.tabs.query({
-      'active': true,
-      'lastFocusedWindow': true
-    }, function (tabs) {
-      if (tabs[0].url == 'https://steamcommunity.com/market/' || tabs[0].url == 'https://steamcommunity.com/market') {
-        scanButton.disabled = false;
-      } else {
-        scanButton.disabled = true;
-      }
-    });
-  }
-});
-autoScanOrdersDelay.addEventListener('change', () => {
-  chrome.storage.local.set({
-    autoScanOrdersDelaySLS: autoScanOrdersDelay.value
-  });
-});
-highOrdersPct.addEventListener('change', () => {
-  chrome.storage.local.set({
-    highOrdersPctSLS: highOrdersPct.value
-  });
-});
-lowOrdersPct.addEventListener('change', () => {
-  chrome.storage.local.set({
-    lowOrdersPctSLS: lowOrdersPct.value
-  });
-});
-timeoutPerOrder.addEventListener('change', () => {
-  chrome.storage.local.set({
-    timeoutPerOrderSLS: timeoutPerOrder.value
-  });
-});
-pauseWhenErrors.addEventListener('change', () => {
-  chrome.storage.local.set({
-    pauseWhenErrorsSLS: pauseWhenErrors.value
-  });
-});
+
 scanButton.addEventListener('click', () => {
-  chrome.storage.local.get('scanButtonSLS', function (result) {
-    chrome.storage.local.set({
-      scanButtonSLS: result.scanButtonSLS == 'start scan' ? 'stop scan' : 'start scan'
+    chrome.storage.local.get('scanButtonSORS', function (result) {
+        chrome.storage.local.set({
+            scanButtonSORS: result.scanButtonSORS == 'start' ? 'stop' : 'start'
+        });
     });
-  });
-  scanButton.disabled = true;
-  setTimeout(() => {
-    scanButton.disabled = false;
-  }, 500);
+    scanButton.disabled = true;
+    setTimeout(() => {
+        scanButton.disabled = false;
+    }, 500);
 });
+
+

@@ -1,28 +1,112 @@
+html, body {
+    height: 100vh;
+}
+
 body {
-    font-size: 16px;
+    display: flex;
+    flex-direction: column;
+    font-family: 'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif;
+    font-size: 90%;
+    background-color: #181818;
 }
+
+.nav {
+    padding-top: 10px;
+    background-color: #121212;
+}
+
+.nav-tabs {
+    border-bottom-color: #ffd700;
+}
+
+.nav-tabs .nav-link {
+    color: #ffffff7e;
+    font-weight: bold;
+}
+
+.nav-tabs .nav-link:hover {
+    cursor: default;
+    border-color: #ffd9007e;
+}
+
+.nav-tabs .nav-link.active {
+    color: #e6e6e6;
+    background-color: #181818;
+    border-color: #ffd700;
+    border-bottom-color: #181818;
+}
+
+.tab-content {
+    height: 100%;
+    overflow: auto;
+    margin-top: 20px;
+}
+
+
+.table>:not(caption)>*>* {
+    color: #e6e6e6;
+    background-color: #202020;
+}
+
+
 table {
-    width: 70%;
-    border-collapse: collapse; 
-    margin-left: auto; 
-    margin-right: auto;
+    width: 86% !important;
+    margin: auto;
 }
-table td{
-    line-height: 25px;
-    padding-left: 10px;
+
+thead {
+    position: sticky;
+    top: 0;
+    outline: 1px solid #373b3e;
+    outline-offset: -1px;
 }
-td:nth-child(1) {
-    width: 5%;
+
+tr {
+	user-select: none;
 }
-td:nth-child(2) {
-    width: 10%;
+
+
+th[scope="col"]:after {
+    margin-left: 4px;
+    font-weight: normal;
+    content: "\21F5";
+    color: gray;
+    z-index: 1;
 }
-td:nth-child(3) {
-    width: 35%;
+
+
+th[scope="col"].order-asc::after {
+    content: "\21C8";
+    font-family: fantasy;
 }
-td:nth-child(4) {
-    width: 10%;
+
+th[scope="col"].order-desc::after {
+    content: "\21CA";
+    font-family: fantasy;
 }
-td:nth-child(5) {
-    width: 10%;
+
+td span {
+    color: gray;
+}
+
+a:hover, a:active, a:focus {
+    color: #ffdb39;
+}
+
+footer p {
+    color: #e6e6e6;
+    margin: 10px;
+    text-align: center;
+}
+
+#lastScan {
+    font-weight: lighter;
+    font-family: system-ui;
+}
+
+
+hr {
+    margin: 0;
+    opacity: 0.9;
+    height: 2px !important;  
 }

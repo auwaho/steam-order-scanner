@@ -23,53 +23,57 @@ window.onbeforeunload = function () {
 	return false;
 }
 onunload = function () {
-	chrome.storage.local.set({
-		scanButtonSLS: "start scan"
-	});
+	if (chrome.runtime?.id) {
+		chrome.storage.local.set({
+			scanButtonSORS: "start"
+		});
+	}
 };
 
 var orderList = [];
 var stopScan = false;
+var g_rgWalletInfo = {};
 
 var cancelHighOrders;
-var cancelLowOrders;
-var highOrdersPct;
-var lowOrdersPct;
-var scanDelay;
-var pauseWhenErrors;
-var timeoutPerOrder;
+var cancelHighPercent;
+var cancelFirstOrders;
+var pauseOnErrors;
+var delayPerOrder;
+var delayRandom;
 
-var banTimer;
 var timer;
 
 chrome.storage.local.get(
 	[
-		"pauseWhenErrorsSLS",
-		"timeoutPerOrderSLS",
-		"cancelHighOrdersSLS",
-		"cancelLowOrdersSLS",
-		"highOrdersPctSLS",
-		"lowOrdersPctSLS",
-		"scanButtonSLS"
+		"scanButtonSORS",
+		"cancelHighOrdersSORS",
+		"cancelHighPercentSORS",
+		"cancelFirstOrdersSORS",
+		"pauseOnErrorsSORS",
+		"delayPerOrderSORS",
+		"delayRandomSORS"
 	],
 	function (result) {
-		pauseWhenErrors = result.pauseWhenErrorsSLS;
-		timeoutPerOrder = result.timeoutPerOrderSLS;
-		cancelHighOrders = result.cancelHighOrdersSLS;
-		cancelLowOrders = result.cancelLowOrdersSLS;
-		highOrdersPct = result.highOrdersPctSLS;
-		lowOrdersPct = result.lowOrdersPctSLS;
 
-		if (result.scanButtonSLS == "stop scan") {
+		cancelHighOrders = result.cancelHighOrdersSORS;
+		cancelHighPercent = parseInt(result.cancelHighPercentSORS);
+		cancelFirstOrders = result.cancelFirstOrdersSORS;
+		pauseOnErrors = parseInt(result.pauseOnErrorsSORS);
+		delayPerOrder = parseInt(result.delayPerOrderSORS);
+		delayRandom = parseInt(result.delayRandom);
+
+		if (result.scanButtonSORS == "stop") {
 
 			tabMyListings.click(); /* make My Active Listings tab active */
 
+			// push visible orders to array
 			var marketItems = document.getElementsByClassName("market_listing_row market_recent_listing_row");
-			for (marketItem of marketItems) {
+			for (var marketItem of marketItems) {
 				if (marketItem.id.includes("mybuyorder_") && window.getComputedStyle(marketItem).display === "block") {
 					orderList.push(marketItem);
 				}
 			}
+
 			if (orderList.length > 0) {
 
 				chrome.storage.onChanged.addListener(listenForStop);
@@ -77,14 +81,11 @@ chrome.storage.local.get(
 				function listenForStop(changes, namespace) {
 
 					/* listen for stop */
-					if (namespace == 'local' && 'scanButtonSLS' in changes) {
-						if (changes.scanButtonSLS.newValue == 'start scan') {
+					if (namespace == 'local' && 'scanButtonSORS' in changes) {
+						if (changes.scanButtonSORS.newValue == 'start') {
 
 							stopScan = true;
 
-							if (banTimer != undefined) {
-								clearTimeout(banTimer);
-							}
 							if (timer != undefined) {
 								clearTimeout(timer);
 							}
@@ -93,32 +94,32 @@ chrome.storage.local.get(
 						}
 					}
 					/* track scan options changes */
-					if (namespace == 'local' && 'cancelHighOrdersSLS' in changes) {
-						cancelHighOrders = changes.cancelHighOrdersSLS.newValue;
+					if (namespace == 'local' && 'cancelHighOrdersSORS' in changes) {
+						cancelHighOrders = changes.cancelHighOrdersSORS.newValue;
 					}
-					if (namespace == 'local' && 'cancelLowOrdersSLS' in changes) {
-						cancelLowOrders = changes.cancelLowOrdersSLS.newValue;
+					if (namespace == 'local' && 'cancelHighPercentSORS' in changes) {
+						cancelHighPercent = parseInt(changes.cancelHighPercentSORS.newValue);
 					}
-					if (namespace == 'local' && 'pauseWhenErrorsSLS' in changes) {
-						pauseWhenErrors = changes.pauseWhenErrorsSLS.newValue;
+					if (namespace == 'local' && 'cancelFirstOrdersSORS' in changes) {
+						cancelFirstOrders = changes.cancelFirstOrdersSORS.newValue;
 					}
-					if (namespace == 'local' && 'timeoutPerOrderSLS' in changes) {
-						timeoutPerOrder = changes.timeoutPerOrderSLS.newValue;
+					if (namespace == 'local' && 'pauseOnErrorsSORS' in changes) {
+						pauseOnErrors = parseInt(changes.pauseOnErrorsSORS.newValue);
 					}
-					if (namespace == 'local' && 'highOrdersPctSLS' in changes) {
-						highOrdersPct = changes.highOrdersPctSLS.newValue;
+					if (namespace == 'local' && 'delayPerOrderSORS' in changes) {
+						delayPerOrder = parseInt(changes.delayPerOrderSORS.newValue);
 					}
-					if (namespace == 'local' && 'lowOrdersPctSLS' in changes) {
-						lowOrdersPct = changes.lowOrdersPctSLS.newValue;
+					if (namespace == 'local' && 'delayRandomSORS' in changes) {
+						delayRandom = parseInt(changes.delayRandomSORS.newValue);
 					}
 				}
 
 				window.onload = window.stop();
-				setTimeout(checkOrders, 100); // run main function
+				setTimeout(startScan, 100); // run main function
 
 			} else {
 				chrome.storage.local.set({
-					scanButtonSLS: "start scan"
+					scanButtonSORS: "start"
 				});
 				alert("Seems you haven't buy orders or not logined!");
 			}
@@ -127,8 +128,11 @@ chrome.storage.local.get(
 	}
 );
 
+
 /* MAIN SCAN FUNCTION */
-async function checkOrders() {
+async function startScan() {
+
+	chrome.storage.local.set({ scanProgressSORS: 0 });
 
 	console.log('%c ▼ single scan start ▼ ', 'background: #000000; color: #FFD700');
 	document.getElementsByClassName('market_tab_well_tabs')[0].style.pointerEvents = "none";
@@ -141,122 +145,171 @@ async function checkOrders() {
 		behavior: 'smooth'
 	});
 
-	/* report variables */
-	var badQty = 0;
-	var badOrd = '';
+
+	var sessionId = '';
+	var marketPrice;
 	var prefix = '';
 	var suffix = '';
+	var table = [];
 
-	var sessionid = '';
-	var sellPrice;
 
-	for (var order of orderList) {
+	var myListingsJson = await fetchRetry('https://steamcommunity.com/market/mylistings/?norender=1');
 
-		var buy_orderid = order.id.substring(11);
-		var orderHref = order.getElementsByClassName('market_listing_item_name_link')[0].href;
-		var appId = getFromBetween.get(orderHref, 'listings/', '/');
-		var hashName = order.getElementsByClassName('market_listing_item_name_link')[0].innerText;
-		var orderPrice = order.getElementsByClassName('market_listing_inline_buyorder_qty')[0].parentElement.innerText.replace(/[^\d^.^,]/g, '').replace(',', '.') * 100;
+	if (stopScan) return;
 
-		var sourceCode = await failRetryHttpGet(orderHref);
+	var myListings = JSON.parse(myListingsJson);
+	var buyOrders = myListings.buy_orders;
 
-		if (stopScan == true) {
+
+	for (var [i, order] of orderList.entries()) {
+
+		var orderId = order.id.substring(11);
+		var orderObj = buyOrders.find(o => o.buy_orderid === orderId);
+		if (orderObj === undefined) continue;
+
+		var appId = parseInt(orderObj.appid);
+		var hashName = orderObj.hash_name;
+		var orderHref = `https://steamcommunity.com/market/listings/${appId}/${encodeURIComponent(hashName)}`;
+		var orderPrice = parseInt(orderObj.price);
+		// var qty = parseInt(orderObj.quantity);
+		// var qtyRemaining = parseInt(orderObj.quantity_remaining);
+		var sourceCode = await fetchRetry(orderHref);
+
+		if (stopScan) {
 			console.log('%c ■  single scan end  ■ ', 'background: #000000; color: #FFD700');
 			document.getElementsByClassName('market_tab_well_tabs')[0].style.pointerEvents = "";
-			return false;
+			return;
+		}
+
+		if (Object.keys(g_rgWalletInfo).length === 0) {
+			g_rgWalletInfo = JSON.parse(getFromBetween.get(sourceCode, `g_rgWalletInfo = `, `;`)[0]);
 		}
 
 		if (prefix + suffix == '') {
 			prefix = getFromBetween.get(sourceCode, `strFormatPrefix = "`, `"`)[0];
 			suffix = getFromBetween.get(sourceCode, `strFormatSuffix = "`, `"`)[0];
 		}
-		if (sessionid == '') {
-			sessionid = getFromBetween.get(sourceCode, `g_sessionID = "`, `"`)[0];
+		if (sessionId == '') {
+			sessionId = getFromBetween.get(sourceCode, `g_sessionID = "`, `"`)[0];
 		}
 
+		var itemNameId = getFromBetween.get(sourceCode, 'Market_LoadOrderSpread( ', ' )')[0];
+		var itemGraphLink = `https://steamcommunity.com/market/itemordershistogram?language=english&currency=${g_rgWalletInfo.wallet_currency}&item_nameid=${itemNameId}`;
+
+		var itemGraphJson = await fetchRetry(itemGraphLink);
+
+		if (stopScan) return;
+
+		var itemGraph = JSON.parse(itemGraphJson);
+
+		// for trFst
+		var firstOrderPrice = parseInt(itemGraph.buy_order_graph[0][0] * 100);
+
+		// for table
 		if (sourceCode.includes('<div id="market_commodity_order_spread">')) {
-
-			var currencyId = getFromBetween.get(sourceCode, '{"wallet_currency":', ',')[0];
-			var itemNameId = getFromBetween.get(sourceCode, 'Market_LoadOrderSpread( ', ' )')[0];
-			var orderHrefJson = `https://steamcommunity.com/market/itemordershistogram?language=english&currency=${currencyId}&item_nameid=${itemNameId}`;
-
-			sourceCode = await failRetryHttpGet(orderHrefJson);
-
-			var avarageOfTwo = JSON.parse(sourceCode).sell_order_graph.map(a => a[0]).slice(0, 4).reduce((a, b) => a + b) / 4 - 0.01;
-			sellPrice = avarageOfTwo < 0.16 ? (avarageOfTwo - 0.02) * 100 : Math.ceil(avarageOfTwo / 1.15 * 100);
+			var avarageOfTwo = itemGraph.sell_order_graph.map(a => a[0]).slice(0, 4).reduce((a, b) => a + b) / 4 - 0.01;
+			marketPrice = avarageOfTwo < 0.16 ? (avarageOfTwo - 0.02) * 100 : Math.ceil(avarageOfTwo / 1.15 * 100);
 
 		} else {
-			var tenPrices = getFromBetween.get(sourceCode, '<span class="market_listing_price market_listing_price_without_fee">', '</span>').map(s => s.replace(/[^\d^.^,]/g, '').replace(',', '.') * 100).filter(Number);
+			//var tenPrices = getFromBetween.get(sourceCode, '<span class="market_listing_price market_listing_price_without_fee">', '</span>').map(s => s.replace(/[^\d^.^,]/g, '').replace(',', '.') * 100).filter(Number);
+			//var tenPrices = itemGraph.sell_order_graph.map(a => a[0] * 100).slice(0, 10);
+			var tenPrices = itemGraph.sell_order_graph.flatMap(a => Array(parseInt(a[1])).fill(a[0] * 100)).slice(0, 10);
 			var fivePrices = tenPrices.slice(Math.max(tenPrices.length - 5, 1));
-			sellPrice = fivePrices.reduce((a, b) => a + b, 0) / fivePrices.length - 1;
+			marketPrice = (fivePrices.reduce((a, b) => a + b, 0) / fivePrices.length - 1);
+			marketPrice = marketPrice - CalculateFeeAmount(marketPrice, g_rgWalletInfo.wallet_publisher_fee_percent_default).fees;
 		}
 
 		/* preventing false cancels (just in case) */
-		if (isNaN(sellPrice) == true || sellPrice == 0) {
+		if (isNaN(marketPrice) == true || marketPrice == 0) {
 			continue;
 		}
 
-		if (sellPrice * (100 - highOrdersPct) / 100 < orderPrice) {
 
-			/* add order to report */
-			badQty++;
-			badOrd += `<tr><td>${badQty}</td><td>${appId}</td><td><a href="${orderHref}" target="_blank">${hashName}</a></td><td>${prefix}${orderPrice/100}${suffix}</td><td>${prefix}${parseFloat((sellPrice/100 - orderPrice/100)+0).toFixed(2)}${suffix}</td></tr>`;
+		if (orderPrice == firstOrderPrice) {
 
-			if (cancelHighOrders == true) {
-				httpPost('//steamcommunity.com/market/cancelbuyorder/', sessionid, buy_orderid);
-			}
-
-			order.style.backgroundColor = "#4C1C1C"; //change order color to red
-			console.log(`%c ${hashName} (${orderPrice / 100}/${sellPrice / 100}): ${orderHref}`, 'color: red');
-
-		} else if (sellPrice * (100 - lowOrdersPct) / 100 > orderPrice) {
-
-			if (cancelLowOrders == true) {
-				httpPost('//steamcommunity.com/market/cancelbuyorder/', sessionid, buy_orderid);
+			if (cancelFirstOrders) {
+				httpPost('//steamcommunity.com/market/cancelbuyorder/', sessionId, orderId);
 			}
 
 			order.style.backgroundColor = "#4C471C"; //change order color to orange
+		}
+		if (marketPrice * (100 - cancelHighPercent) / 100 < orderPrice) {
+
+			var breakEvenPoint = CalculateAmountToSendForDesiredReceivedAmount(orderPrice, g_rgWalletInfo.wallet_publisher_fee_percent_default).amount;
+			var marketPriceWithFee = CalculateAmountToSendForDesiredReceivedAmount(marketPrice, g_rgWalletInfo.wallet_publisher_fee_percent_default).amount;
+			var tdOrder = (orderPrice / 100).toFixed(2);
+			var tdOrderBEP = (breakEvenPoint / 100).toFixed(2);
+			var tdMarket = (marketPrice / 100).toFixed(2);
+			var tdMarketWithFee = (marketPriceWithFee / 100).toFixed(2);
+			var td1st = orderPrice == firstOrderPrice;
+
+			// add to bad orders array
+			table.push([appId, hashName, tdOrder, tdOrderBEP, tdMarket, tdMarketWithFee, td1st]);
+
+			if (cancelHighOrders) {
+				httpPost('//steamcommunity.com/market/cancelbuyorder/', sessionId, orderId);
+			}
+
+			order.style.backgroundColor = "#4C1C1C"; //change order color to red
+			console.log(`%c ${hashName} (${orderPrice / 100}/${marketPrice / 100}): ${orderHref}`, 'color: red');
 
 		} else {
 			order.style.backgroundColor = "#1C4C1C"; //change order color to green
 		}
+
 		console.log('Check');
-		await new Promise(done => timer = setTimeout(() => done(), timeoutPerOrder));
+		chrome.storage.local.set({ scanProgressSORS: parseInt((i + 1) / buyOrders.length * 100) });
+		chrome.storage.local.set({ scanTableBadSORS: table });
+
+		await wait(random(delayPerOrder, delayRandom / 100 * delayPerOrder + delayPerOrder));
 	}
 
 	chrome.storage.local.set({
-		scanButtonSLS: "start scan",
-		scanEndTimeSLS: new Date().toLocaleString(),
-		scanTableSLS: badOrd
+		scanButtonSORS: "start",
+		scanEndTimeSORS: new Date().toLocaleString(),
+		scanPrefSuffSORS: [prefix, suffix],
+		scanTableBadSORS: table
 	});
 
 	console.log('%c ■  single scan end  ■ ', 'background: #000000; color: #FFD700');
 	document.getElementsByClassName('market_tab_well_tabs')[0].style.pointerEvents = "";
 }
 
-/* OTHER FUNCTIONS */
 
-async function failRetryHttpGet(url, attempts = 5) {
-	return await httpGet(url).catch(async function () {
-		if (attempts == 5) {
-			await wait(5000);
-			return failRetryHttpGet(url, attempts - 1);
-		} else if (attempts <= 0) {
-			await wait(pauseWhenErrors * 60000);
-			return failRetryHttpGet(url, attempts = 5);
-		}
-		await wait(10000);
-		return failRetryHttpGet(url, attempts - 1);
-	});
-}
+
+/* OTHER FUNCTIONS */
 
 async function wait(ms) {
 	return new Promise(resolve => {
-		banTimer = setTimeout(resolve, ms);
+		timer = setTimeout(resolve, ms);
 	});
 }
 
-function httpGet(url) {
+function random(min, max) {
+	return Math.floor(Math.random() * (max - min + 1) + min)
+}
+
+// function fetchGet(url) {
+// 	return new Promise(function (resolve, reject) {
+// 		fetch(url)
+// 			.then(response => {
+// 				if (response.ok) {
+
+// 					chrome.storage.local.set({ scanErrorSORS: false });
+// 					resolve(response.text());
+
+// 				} else {
+// 					var error = new Error(response.statusText);
+// 					reject(error);
+// 				}
+// 			})
+// 			.catch(error => {
+// 				reject(error);
+// 			})
+// 	});
+// }
+
+function fetchGet(url) {
 	return new Promise(function (resolve, reject) {
 		var xhr = new XMLHttpRequest();
 		xhr.open('GET', url, true);
@@ -273,6 +326,23 @@ function httpGet(url) {
 			reject(new Error("Network Error"));
 		};
 		xhr.send();
+	});
+}
+
+async function fetchRetry(url, attempts = 5) {
+	return await fetchGet(url).catch(async function () {
+
+		chrome.storage.local.set({ scanErrorSORS: true });
+
+		if (attempts == 5) {
+			await wait(5000);
+			return fetchRetry(url, attempts - 1);
+		} else if (attempts <= 0) {
+			await wait(pauseOnErrors * 60000);
+			return fetchRetry(url, attempts = 5);
+		}
+		await wait(10000);
+		return fetchRetry(url, attempts - 1);
 	});
 }
 
@@ -323,4 +393,51 @@ var getFromBetween = {
 	get: function (t, s, i) {
 		return this.results = [], this.string = t, this.getAllResults(s, i), this.results
 	}
+}
+
+function CalculateAmountToSendForDesiredReceivedAmount(receivedAmount, publisherFee) {
+	if (!g_rgWalletInfo['wallet_fee']) {
+		return receivedAmount;
+	}
+	publisherFee = (typeof publisherFee == 'undefined') ? 0 : publisherFee;
+	var nSteamFee = parseInt(Math.floor(Math.max(receivedAmount * parseFloat(g_rgWalletInfo['wallet_fee_percent']), g_rgWalletInfo['wallet_fee_minimum']) + parseInt(g_rgWalletInfo['wallet_fee_base'])));
+	var nPublisherFee = parseInt(Math.floor(publisherFee > 0 ? Math.max(receivedAmount * publisherFee, 1) : 0));
+	var nAmountToSend = receivedAmount + nSteamFee + nPublisherFee;
+	return {
+		steam_fee: nSteamFee,
+		publisher_fee: nPublisherFee,
+		fees: nSteamFee + nPublisherFee,
+		amount: parseInt(nAmountToSend)
+	};
+}
+
+function CalculateFeeAmount(amount, publisherFee) {
+	if (!g_rgWalletInfo['wallet_fee'])
+		return 0;
+	publisherFee = (typeof publisherFee == 'undefined') ? 0 : publisherFee;
+	// Since CalculateFeeAmount has a Math.floor, we could be off a cent or two. Let's check:
+	var iterations = 0; // shouldn't be needed, but included to be sure nothing unforseen causes us to get stuck
+	var nEstimatedAmountOfWalletFundsReceivedByOtherParty = parseInt((amount - parseInt(g_rgWalletInfo['wallet_fee_base'])) / (parseFloat(g_rgWalletInfo['wallet_fee_percent']) + parseFloat(publisherFee) + 1));
+	var bEverUndershot = false;
+	var fees = CalculateAmountToSendForDesiredReceivedAmount(nEstimatedAmountOfWalletFundsReceivedByOtherParty, publisherFee);
+	while (fees.amount != amount && iterations < 10) {
+		if (fees.amount > amount) {
+			if (bEverUndershot) {
+				fees = CalculateAmountToSendForDesiredReceivedAmount(nEstimatedAmountOfWalletFundsReceivedByOtherParty - 1, publisherFee);
+				fees.steam_fee += (amount - fees.amount);
+				fees.fees += (amount - fees.amount);
+				fees.amount = amount;
+				break;
+			} else {
+				nEstimatedAmountOfWalletFundsReceivedByOtherParty--;
+			}
+		} else {
+			bEverUndershot = true;
+			nEstimatedAmountOfWalletFundsReceivedByOtherParty++;
+		}
+		fees = CalculateAmountToSendForDesiredReceivedAmount(nEstimatedAmountOfWalletFundsReceivedByOtherParty, publisherFee);
+		iterations++;
+	}
+	// fees.amount should equal the passed in amount
+	return fees;
 }

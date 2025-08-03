@@ -19,8 +19,64 @@
   Home: https://github.com/auwaho/steam-order-scanner
 */
 
-chrome.storage.local.get(['scanEndTimeSLS', 'scanTableSLS'], function (result) {
-    var tableHtml = `<caption><b>LAST FULL SCAN:</b> ${result.scanEndTimeSLS}</caption><tbody><tr><td><b>ID</b></td><td><b>APP ID</b></td><td><b>ITEM LINK</b></td><td><b>ORDER</b/></td><td><b>PROFIT</b></td></tr>${result.scanTableSLS}</tbody>`;
-    var tableRef = document.getElementById('sorsTable');
-    tableRef.innerHTML = tableHtml;
-})
+chrome.storage.local.get(
+   [
+      'scanEndTimeSORS',
+      'scanPrefSuffSORS',
+      'scanTableBadSORS',
+      'scanTableFstSORS',
+      'scanProgressSORS',
+      'scanErrorSORS'
+
+   ], function (result) {
+
+      lastScan.innerText = result.scanEndTimeSORS;
+      progress.style.color = result.scanErrorSORS ? 'red' : '#0075ff';
+      progress.style.width = `${result.scanProgressSORS}%`;
+      // progress.style.transition = 'width 2s';
+
+      var pref = JSON.parse('"' + result.scanPrefSuffSORS[0] + '"');
+      var suff = JSON.parse('"' + result.scanPrefSuffSORS[1] + '"');
+
+      result.scanTableBadSORS.forEach((e, i) => {
+         // e[appId, hashName, tdOrder, tdOrderBEP, tdMarket, tdMarketWithFee]
+         var profit = pref + (e[4] - e[2]).toFixed(2) + suff;
+         var profitPercent = parseInt((100 - e[2] / e[4] * 100));
+
+         document.getElementById('badOrd').innerHTML +=
+            `
+            <tr>
+            <th scope="row">${i + 1}</th>
+            <td><a href="https://steamcommunity.com/market/search?appid=${e[0]}" target="_blank">${e[0]}</a></td>
+            <td><a href="https://steamcommunity.com/market/listings/${e[0]}/${encodeURIComponent(e[1])}" target="_blank">${e[1]}</a></td>
+            <td>${e[8] == true ? '+' : '-'}</td>
+            <td data-sort="${e[2]}">
+               ${pref + e[2] + suff}
+               <span title="Break-even point.">(${pref + e[3] + suff})</span>
+            </td>
+            <td data-sort="${e[5]}">
+               ${pref + e[5] + suff}
+               <span title="This is how much you will receive.">(${pref + e[4] + suff})</span>
+            </td>
+            <td data-sort="${profitPercent}">
+               ${profitPercent}%
+               <span title="Net profit.">(${profit})</span>
+            </td>
+            </tr>
+            `;
+      });
+
+   })
+
+chrome.storage.onChanged.addListener(function (changes, namespace) {
+
+   if (namespace == 'local' && 'scanEndTimeSORS' in changes) {
+      lastScan.innerText = changes.scanEndTimeSORS.newValue;
+   }
+   if (namespace == 'local' && 'scanProgressSORS' in changes) {
+      progress.style.width = `${changes.scanProgressSORS.newValue}%`;
+   }
+   if (namespace == 'local' && 'scanErrorSORS' in changes) {
+      progress.style.color = changes.scanErrorSORS.newValue ? 'red' : '#0075ff';
+   }
+});
