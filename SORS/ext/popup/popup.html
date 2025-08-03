@@ -30,10 +30,6 @@
    Scan options info:
    1.  Cancel first placed: mark order & cancel (if checked) if the order is first in the queue.
    2.  Cancel if less (±%): mark order & cancel (if checked) if profit percent less then indicated value.
-   3.  Background (min): scans all your buy orders with set interval in the background. Does not require 
-      any tab open. Opens market tab (if it's not opened) only on order cancel, if checked. Note: If you 
-      close this  page before it will be loaded, order cancelation will fail. If browser closed with scan 
-      running, it will automatically start again when you open the browser.
    _"
                     >
                         ?
@@ -55,15 +51,6 @@
                         <span class="checkmark"></span>
                     </label>
                     <input type="number" id="cancelHighPercent" min="-9999" max="9999" placeholder="0" />
-                </div>
-
-                <div class="setting">
-                    <label class="container"
-                        >Background (min)
-                        <input type="checkbox" id="backgroundScan" name="backgroundScan" unchecked />
-                        <span class="checkmark"></span>
-                    </label>
-                    <input type="number" id="backgroundScanDelay" min="0" max="9999" placeholder="30" />
                 </div>
 
                 <div class="setting">

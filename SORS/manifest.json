@@ -2,7 +2,6 @@
     "manifest_version": 3,
     "name": "Steam Order Scanner",
     "version": "2.0.0",
-
     "short_name": "SORS",
     "description": "Helps keep your market buy orders profitable. Also adds some useful features.",
     "icons": {
@@ -10,13 +9,8 @@
         "48": "ico/48.png",
         "128": "ico/128.png"
     },
-
-    "permissions": ["storage", "activeTab", "tabs", "scripting", "alarms", "notifications"],
+    "permissions": ["storage", "activeTab", "tabs", "scripting"],
     "host_permissions": ["*://steamcommunity.com/*"],
-
-    "background": {
-        "service_worker": "background.js"
-    },
     "action": {
         "default_popup": "ext/popup/popup.html"
     },

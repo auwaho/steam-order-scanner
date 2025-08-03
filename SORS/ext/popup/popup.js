@@ -23,8 +23,6 @@
 chrome.storage.local.get(
     [
         'scanButtonSORS',
-        'backgroundScanSORS',
-        'backgroundScanDelaySORS',
         'cancelHighOrdersSORS',
         'cancelHighPercentSORS',
         'cancelFirstOrdersSORS',
@@ -36,8 +34,6 @@ chrome.storage.local.get(
     ],
     function (result) {
         scanButton.innerText = result.scanButtonSORS
-        backgroundScan.checked = result.backgroundScanSORS
-        backgroundScanDelay.value = result.backgroundScanDelaySORS
         cancelHighOrders.checked = result.cancelHighOrdersSORS
         cancelHighPercent.value = result.cancelHighPercentSORS
         cancelFirstOrders.checked = result.cancelFirstOrdersSORS
@@ -49,10 +45,6 @@ chrome.storage.local.get(
 
         scanButton.dataset.active = result.scanButtonSORS == 'stop'
 
-        if (result.scanButtonSORS == 'stop') {
-            backgroundScan.disabled = true
-        }
-
         // turn off button everywhere except steam market page
         chrome.tabs.query(
             {
@@ -62,8 +54,7 @@ chrome.storage.local.get(
             function (tabs) {
                 if (
                     tabs[0].url == 'https://steamcommunity.com/market/' ||
-                    tabs[0].url == 'https://steamcommunity.com/market' ||
-                    result.backgroundScanSORS == true
+                    tabs[0].url == 'https://steamcommunity.com/market'
                 ) {
                     scanButton.disabled = false
                 }
@@ -77,33 +68,19 @@ chrome.storage.onChanged.addListener(function (changes, namespace) {
     if (namespace == 'local' && 'scanButtonSORS' in changes) {
         if (changes.scanButtonSORS.newValue == 'start') {
             scanButton.innerText = 'start'
-            backgroundScan.disabled = false
             scanButton.dataset.active = false
-
-            if (backgroundScan.checked == true) {
-                chrome.storage.local.set({
-                    runAutoScanSORS: false
-                })
-            }
         } else {
-            if (backgroundScan.checked == false) {
-                chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
-                    var currTab = tabs[0]
-                    if (currTab) {
-                        chrome.scripting.executeScript({
-                            target: { tabId: currTab.id, allFrames: true },
-                            files: ['site/scanner.js']
-                        })
-                    }
-                })
-            } else {
-                chrome.storage.local.set({
-                    runAutoScanSORS: true
-                })
-            }
+            chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
+                var currTab = tabs[0]
+                if (currTab) {
+                    chrome.scripting.executeScript({
+                        target: { tabId: currTab.id, allFrames: true },
+                        files: ['site/scanner.js']
+                    })
+                }
+            })
 
             scanButton.innerText = 'stop'
-            backgroundScan.disabled = true
             scanButton.dataset.active = true
         }
     }
@@ -131,24 +108,6 @@ document.querySelectorAll('input').forEach((el) => {
 
         if (el.type == 'checkbox') {
             chrome.storage.local.set({ [`${el.id}SORS`]: el.checked })
-
-            if (el.id == 'backgroundScan') {
-                chrome.tabs.query(
-                    {
-                        active: true,
-                        lastFocusedWindow: true
-                    },
-                    function (tabs) {
-                        if (
-                            tabs[0] == undefined ||
-                            (tabs[0].url != 'https://steamcommunity.com/market/') &
-                                (tabs[0].url != 'https://steamcommunity.com/market')
-                        ) {
-                            scanButton.disabled = !el.checked
-                        }
-                    }
-                )
-            }
         }
     })
 })
