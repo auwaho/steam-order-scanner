@@ -20,35 +20,35 @@
 */
 
 chrome.storage.local.get(
-   [
-      'scanEndTimeSORS',
-      'scanPrefSuffSORS',
-      'scanTableBadSORS',
-      'scanTableFstSORS',
-      'scanProgressSORS',
-      'scanErrorSORS'
+    [
+        'scanEndTimeSORS',
+        'scanPrefSuffSORS',
+        'scanTableBadSORS',
+        'scanTableFstSORS',
+        'scanProgressSORS',
+        'scanErrorSORS'
+    ],
+    function (result) {
+        lastScan.innerText = result.scanEndTimeSORS
+        progress.style.color = result.scanErrorSORS ? 'red' : '#0075ff'
+        progress.style.width = `${result.scanProgressSORS}%`
+        // progress.style.transition = 'width 2s';
 
-   ], function (result) {
+        var pref = JSON.parse(`"${result.scanPrefSuffSORS[0]}"`)
+        var suff = JSON.parse(`"${result.scanPrefSuffSORS[1]}"`)
 
-      lastScan.innerText = result.scanEndTimeSORS;
-      progress.style.color = result.scanErrorSORS ? 'red' : '#0075ff';
-      progress.style.width = `${result.scanProgressSORS}%`;
-      // progress.style.transition = 'width 2s';
+        result.scanTableBadSORS.forEach((e, i) => {
+            // e[appId, hashName, tdOrder, tdOrderBEP, tdMarket, tdMarketWithFee]
+            var profit = pref + (e[4] - e[2]).toFixed(2) + suff
+            var profitPercent = parseInt(100 - (e[2] / e[4]) * 100)
 
-      var pref = JSON.parse('"' + result.scanPrefSuffSORS[0] + '"');
-      var suff = JSON.parse('"' + result.scanPrefSuffSORS[1] + '"');
-
-      result.scanTableBadSORS.forEach((e, i) => {
-         // e[appId, hashName, tdOrder, tdOrderBEP, tdMarket, tdMarketWithFee]
-         var profit = pref + (e[4] - e[2]).toFixed(2) + suff;
-         var profitPercent = parseInt((100 - e[2] / e[4] * 100));
-
-         document.getElementById('badOrd').innerHTML +=
-            `
+            document.getElementById('badOrd').innerHTML += `
             <tr>
             <th scope="row">${i + 1}</th>
             <td><a href="https://steamcommunity.com/market/search?appid=${e[0]}" target="_blank">${e[0]}</a></td>
-            <td><a href="https://steamcommunity.com/market/listings/${e[0]}/${encodeURIComponent(e[1])}" target="_blank">${e[1]}</a></td>
+            <td><a href="https://steamcommunity.com/market/listings/${e[0]}/${encodeURIComponent(
+                e[1]
+            )}" target="_blank">${e[1]}</a></td>
             <td>${e[8] == true ? '+' : '-'}</td>
             <td data-sort="${e[2]}">
                ${pref + e[2] + suff}
@@ -63,20 +63,19 @@ chrome.storage.local.get(
                <span title="Net profit.">(${profit})</span>
             </td>
             </tr>
-            `;
-      });
-
-   })
+            `
+        })
+    }
+)
 
 chrome.storage.onChanged.addListener(function (changes, namespace) {
-
-   if (namespace == 'local' && 'scanEndTimeSORS' in changes) {
-      lastScan.innerText = changes.scanEndTimeSORS.newValue;
-   }
-   if (namespace == 'local' && 'scanProgressSORS' in changes) {
-      progress.style.width = `${changes.scanProgressSORS.newValue}%`;
-   }
-   if (namespace == 'local' && 'scanErrorSORS' in changes) {
-      progress.style.color = changes.scanErrorSORS.newValue ? 'red' : '#0075ff';
-   }
-});
+    if (namespace == 'local' && 'scanEndTimeSORS' in changes) {
+        lastScan.innerText = changes.scanEndTimeSORS.newValue
+    }
+    if (namespace == 'local' && 'scanProgressSORS' in changes) {
+        progress.style.width = `${changes.scanProgressSORS.newValue}%`
+    }
+    if (namespace == 'local' && 'scanErrorSORS' in changes) {
+        progress.style.color = changes.scanErrorSORS.newValue ? 'red' : '#0075ff'
+    }
+})

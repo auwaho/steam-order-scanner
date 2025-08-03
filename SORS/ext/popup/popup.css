@@ -8,7 +8,6 @@ body {
     color: #e6e6e6;
     font-size: 12px;
 
-
     -webkit-touch-callout: none;
     -webkit-user-select: none;
     -khtml-user-select: none;
@@ -21,7 +20,7 @@ input {
     margin: 0;
 }
 
-input[type="number"] {
+input[type='number'] {
     margin-left: auto;
     width: 74px;
     height: 14px;
@@ -33,14 +32,9 @@ input[type="number"] {
     color: #e6e6e6;
 }
 
-input[type="number"]::placeholder {
+input[type='number']::placeholder {
     color: #747474;
 }
-
-/* input[type="checkbox"] {
-    margin-top: 1px;
-    margin-right: 8px;
-} */
 
 a {
     color: #0075ff;
@@ -49,7 +43,6 @@ a {
 a:hover {
     color: #ffdb39;
 }
-
 
 .header {
     display: flex;
@@ -80,10 +73,6 @@ a:hover {
     color: #5d5d5d;
 }
 
-/* .header__button:not(:disabled):hover {
-border: 2px solid gold;
-} */
-
 .header__button::before {
     content: '■';
     margin-right: 5px;
@@ -91,7 +80,7 @@ border: 2px solid gold;
     transition: color 0.5s;
 }
 
-.header__button[data-active=false]:before {
+.header__button[data-active='false']:before {
     content: '▶';
 }
 
@@ -130,18 +119,11 @@ border: 2px solid gold;
     border-radius: 50%;
 }
 
-
 .setting {
     margin: 3px 0;
     display: flex;
     align-items: center;
 }
-
-
-
-
-
-
 
 .container {
     display: flex;
@@ -161,7 +143,6 @@ border: 2px solid gold;
 
 .checkmark {
     position: absolute;
-    /* top: 0; */
     left: 0;
     height: 13px;
     width: 13px;
@@ -169,30 +150,30 @@ border: 2px solid gold;
     border-radius: 3px;
 }
 
-.container:hover input~.checkmark {
+.container:hover input ~ .checkmark {
     background-color: #444444;
 }
 
-.container input:checked~.checkmark {
+.container input:checked ~ .checkmark {
     background-color: #575757;
 }
-.container input:disabled~.checkmark {
+.container input:disabled ~ .checkmark {
     background-color: #444444;
 }
-.container:hover input:checked~.checkmark {
+.container:hover input:checked ~ .checkmark {
     background-color: #444444;
 }
 
 .checkmark:after {
-    content: "";
+    content: '';
     position: absolute;
     display: none;
 }
 
-.container input:checked~.checkmark:after {
+.container input:checked ~ .checkmark:after {
     display: block;
 }
-.container input:disabled~.checkmark:after {
+.container input:disabled ~ .checkmark:after {
     border: solid #8a8a8a;
     border-width: 0 2px 2px 0;
     transform: rotate(40deg);
@@ -207,5 +188,3 @@ border: 2px solid gold;
     border-width: 0 2px 2px 0;
     transform: rotate(40deg);
 }
-
-/* #ff004c */

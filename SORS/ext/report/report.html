@@ -1,51 +1,58 @@
 <!DOCTYPE html>
 <html>
+    <head>
+        <title>Last full scan report</title>
+        <link rel="shortcut icon" href="../../ico/16.png" type="image/png" />
 
-<head>
-  <title>Last full scan report</title>
-  <link rel="shortcut icon" href="../../ico/16.png" type="image/png">
+        <link rel="stylesheet" href="/ext/lib/bootstrap/css/bootstrap.min.css" />
+        <!-- <script type="text/javascript" src="/ext/lib/bootstrap/js/bootstrap.min.js"></script> -->
 
-  <link rel="stylesheet" href="/ext/lib/bootstrap/css/bootstrap.min.css">
-  <!-- <script type="text/javascript" src="/ext/lib/bootstrap/js/bootstrap.min.js"></script> -->
+        <link rel="stylesheet" href="report.css" />
+    </head>
 
-  <link rel="stylesheet" href="report.css">
-</head>
-
-<body>
-  <ul class="nav nav-tabs justify-content-center" id="myTab" role="tablist">
-    <li class="nav-item" role="presentation">
-      <button class="nav-link active" id="home-tab" data-bs-toggle="tab" data-bs-target="#home" type="button" role="tab"
-        aria-controls="home" aria-selected="true">
-        LAST FULL SCAN REPORT
-      </button>
-    </li>
-    <!-- <li class="nav-item" role="presentation">
+    <body>
+        <ul class="nav nav-tabs justify-content-center" id="myTab" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button
+                    class="nav-link active"
+                    id="home-tab"
+                    data-bs-toggle="tab"
+                    data-bs-target="#home"
+                    type="button"
+                    role="tab"
+                    aria-controls="home"
+                    aria-selected="true"
+                >
+                    LAST FULL SCAN REPORT
+                </button>
+            </li>
+            <!-- <li class="nav-item" role="presentation">
             <button class="nav-link" id="profile-tab" data-bs-toggle="tab" data-bs-target="#profile" type="button"
                 role="tab" aria-controls="profile" aria-selected="false">
                 ON THE FIRST PLACE
             </button>
         </li> -->
-  </ul>
-  <div class="tab-content" id="myTabContent">
-    <div class="tab-pane fade show active" id="home" role="tabpanel" aria-labelledby="home-tab">
-      <table class="table table-dark table-bordered table-fixed table-sortable">
-        <thead>
-          <tr>
-            <th scope="col" style="width: 7%;" data-field="index">#</th>
-            <th scope="col" style="width: 7%;">APPID</th>
-            <th scope="col" style="width: 43%;">NAME</th>
-            <th scope="col" style="width: 7%;">1ST</th>
-            <th scope="col" style="width: 12%;">ORDER</th>
-            <th scope="col" style="width: 12%;">MARKET</th>
-            <th scope="col" style="width: 12%;">PROFIT</th>
-          </tr>
-        </thead>
-        <tbody id="badOrd">
-          <!-- Table data here -->
-        </tbody>
-      </table>
-    </div>
-    <!-- <div class="tab-pane fade" id="profile" role="tabpanel" aria-labelledby="profile-tab">
+        </ul>
+        <div class="tab-content" id="myTabContent">
+            <div class="tab-pane fade show active" id="home" role="tabpanel" aria-labelledby="home-tab">
+                <table class="table table-dark table-bordered table-fixed table-sortable">
+                    <thead>
+                        <tr>
+                            <th scope="col" style="width: 7%" data-field="index">#</th>
+                            <th scope="col" style="width: 7%">APPID</th>
+                            <th scope="col" style="width: 43%">NAME</th>
+                            <th scope="col" style="width: 7%">1ST</th>
+                            <th scope="col" style="width: 12%">ORDER</th>
+                            <th scope="col" style="width: 12%">MARKET</th>
+                            <th scope="col" style="width: 12%">PROFIT</th>
+                        </tr>
+                    </thead>
+                    <tbody id="badOrd">
+                        <!-- Table data here -->
+                    </tbody>
+                </table>
+            </div>
+            <!-- <div class="tab-pane fade" id="profile" role="tabpanel" aria-labelledby="profile-tab">
             <table class="table table-dark table-bordered">
                 <thead>
                     <tr>
@@ -59,16 +66,14 @@
                 </tbody>
             </table>
         </div> -->
-  </div>
-  
-  <footer>
-    <p><b>LAST SCAN:</b> <span id="lastScan">NOT YET COMPLETED</span></p>
-    <hr id="progress" style="width: 0%; color: #0075ff;">
-  </footer>
-  
-  <script type="text/javascript" src="report.js"></script>
-  <script src="/ext/lib/table-sortable.min.js"></script>
-</body>
+        </div>
 
+        <footer>
+            <p><b>LAST SCAN:</b> <span id="lastScan">NOT YET COMPLETED</span></p>
+            <hr id="progress" style="width: 0%; color: #0075ff" />
+        </footer>
 
+        <script type="text/javascript" src="report.js"></script>
+        <script src="/ext/lib/table-sortable.min.js"></script>
+    </body>
 </html>

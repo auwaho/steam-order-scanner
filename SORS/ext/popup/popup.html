@@ -1,35 +1,32 @@
 <!DOCTYPE html>
 <html>
+    <head>
+        <meta charset="UTF-8" />
+        <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <link rel="stylesheet" href="popup.css" />
+        <title>Steam Order Scanner</title>
+    </head>
 
-<head>
-   <meta charset="UTF-8">
-   <meta http-equiv="X-UA-Compatible" content="IE=edge">
-   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-   <link rel="stylesheet" href="popup.css">
-   <title>Steam Order Scanner</title>
-</head>
+    <body>
+        <h1 style="display: none">Steam Order Scanner</h1>
 
-<body>
+        <div class="header">
+            <p class="header__text">
+                Scan on the <a href="http://steamcommunity.com/market/" target="_blank">market page</a>
+                <br />
+                View <a href="../report/report.html" target="_blank" id="scanReport">last full scan report</a>
+            </p>
+            <button class="header__button" id="scanButton" disabled>start</button>
+        </div>
 
-   <h1 style="display: none;">Steam Order Scanner</h1>
-
-   <div class="header">
-      <p class="header__text">
-         Scan on the <a href="http://steamcommunity.com/market/" target="_blank">market page</a>
-         <br>
-         View <a href="../report/report.html" target="_blank" id="scanReport">last full scan report</a>
-      </p>
-      <button class="header__button" id="scanButton" disabled>start</button>
-   </div>
-
-
-   <div class="settings">
-
-      <div class="settings__block">
-
-         <div class="title">
-            <h2 class="title__text">Scan options</h2>
-            <p class="title__help" title=">
+        <div class="settings">
+            <div class="settings__block">
+                <div class="title">
+                    <h2 class="title__text">Scan options</h2>
+                    <p
+                        class="title__help"
+                        title=">
    Scan options info:
    1.  Cancel first placed: mark order & cancel (if checked) if the order is first in the queue.
    2.  Cancel if less (±%): mark order & cancel (if checked) if profit percent less then indicated value.
@@ -37,55 +34,60 @@
       any tab open. Opens market tab (if it's not opened) only on order cancel, if checked. Note: If you 
       close this  page before it will be loaded, order cancelation will fail. If browser closed with scan 
       running, it will automatically start again when you open the browser.
-   _">?
-            </p>
-         </div>
+   _"
+                    >
+                        ?
+                    </p>
+                </div>
 
-         <div class="setting">
-            <label class="container">Cancel first placed
-               <input type="checkbox" id="cancelFirstOrders" name="cancelFirstOrders" unchecked />
-               <span class="checkmark"></span>
-            </label>
-         </div>
+                <div class="setting">
+                    <label class="container"
+                        >Cancel first placed
+                        <input type="checkbox" id="cancelFirstOrders" name="cancelFirstOrders" unchecked />
+                        <span class="checkmark"></span>
+                    </label>
+                </div>
 
-         <div class="setting">
-            <label class="container">Cancel if less (&plusmn;%)
-               <input type="checkbox" id="cancelHighOrders" name="cancelHighOrders" unchecked />
-               <span class="checkmark"></span>
-            </label> 
-            <input type="number" id="cancelHighPercent" min="-9999" max="9999" placeholder="0" />
-         </div>
+                <div class="setting">
+                    <label class="container"
+                        >Cancel if less (&plusmn;%)
+                        <input type="checkbox" id="cancelHighOrders" name="cancelHighOrders" unchecked />
+                        <span class="checkmark"></span>
+                    </label>
+                    <input type="number" id="cancelHighPercent" min="-9999" max="9999" placeholder="0" />
+                </div>
 
-         <div class="setting">
-            <label class="container">Background (min)
-               <input type="checkbox" id="backgroundScan" name="backgroundScan" unchecked />
-               <span class="checkmark"></span>
-            </label>
-            <input type="number" id="backgroundScanDelay" min="0" max="9999" placeholder="30" />
-         </div>
+                <div class="setting">
+                    <label class="container"
+                        >Background (min)
+                        <input type="checkbox" id="backgroundScan" name="backgroundScan" unchecked />
+                        <span class="checkmark"></span>
+                    </label>
+                    <input type="number" id="backgroundScanDelay" min="0" max="9999" placeholder="30" />
+                </div>
 
+                <div class="setting">
+                    <label>Pause on errors (min)</label>
+                    <input type="number" id="pauseOnErrors" min="0" max="9999" placeholder="2" />
+                </div>
 
-         <div class="setting">
-            <label>Pause on errors (min)</label>
-            <input type="number" id="pauseOnErrors" min="0" max="9999" placeholder="2" />
-         </div>
+                <div class="setting">
+                    <label>Delay per order (ms)</label>
+                    <input type="number" id="delayPerOrder" min="0" max="9999" placeholder="200" />
+                </div>
 
-         <div class="setting">
-            <label>Delay per order (ms)</label>
-            <input type="number" id="delayPerOrder" min="0" max="9999" placeholder="200" />
-         </div>
+                <div class="setting">
+                    <label>Delay random (+ms)</label>
+                    <input type="number" id="delayRandom" min="0" max="9999" placeholder="50" />
+                </div>
+            </div>
 
-         <div class="setting">
-            <label>Delay random (+ms)</label>
-            <input type="number" id="delayRandom" min="0" max="9999" placeholder="50" />
-         </div>
-      </div>
-
-      <div class="settings__block">
-
-         <div class="title">
-            <h2 class="title__text">Market customization</h2>
-            <p class="title__help" title=">
+            <div class="settings__block">
+                <div class="title">
+                    <h2 class="title__text">Market customization</h2>
+                    <p
+                        class="title__help"
+                        title=">
    Show more buy orders: expands buy/sell request tables with set value on the item pages if it possible.
    Also there are few more useful things by default such as:
       •  showing lot prices without fee on the item pages
@@ -93,25 +95,23 @@
          graph on the item page
       •  showing sum of all orders and sell listings on the main market page near headers
       •  adding left/was quantity to all orders on the main market page
-   _">?
-            </p>
-         </div>
+   _"
+                    >
+                        ?
+                    </p>
+                </div>
 
-         <div class="setting">
-            <label class="container">Show more orders
-               <input type="checkbox" id="showMoreOrders" name="showMoreOrders" checked />
-               <span class="checkmark"></span>
-            </label>            
-            <input type="number" id="showMoreOrdersQty" min="1" max="9999" placeholder="20" /><br>
-         </div>
+                <div class="setting">
+                    <label class="container"
+                        >Show more orders
+                        <input type="checkbox" id="showMoreOrders" name="showMoreOrders" checked />
+                        <span class="checkmark"></span>
+                    </label>
+                    <input type="number" id="showMoreOrdersQty" min="1" max="9999" placeholder="20" /><br />
+                </div>
+            </div>
+        </div>
 
-      </div>
-
-   </div>
-
-
-   <script type="text/javascript" src="popup.js"></script>
-
-</body>
-
+        <script type="text/javascript" src="popup.js"></script>
+    </body>
 </html>

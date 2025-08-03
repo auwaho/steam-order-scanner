@@ -1,4 +1,5 @@
-html, body {
+html,
+body {
     height: 100vh;
 }
 
@@ -42,12 +43,10 @@ body {
     margin-top: 20px;
 }
 
-
-.table>:not(caption)>*>* {
+.table > :not(caption) > * > * {
     color: #e6e6e6;
     background-color: #202020;
 }
-
 
 table {
     width: 86% !important;
@@ -62,26 +61,24 @@ thead {
 }
 
 tr {
-	user-select: none;
+    user-select: none;
 }
 
-
-th[scope="col"]:after {
+th[scope='col']:after {
     margin-left: 4px;
     font-weight: normal;
-    content: "\21F5";
+    content: '\21F5';
     color: gray;
     z-index: 1;
 }
 
-
-th[scope="col"].order-asc::after {
-    content: "\21C8";
+th[scope='col'].order-asc::after {
+    content: '\21C8';
     font-family: fantasy;
 }
 
-th[scope="col"].order-desc::after {
-    content: "\21CA";
+th[scope='col'].order-desc::after {
+    content: '\21CA';
     font-family: fantasy;
 }
 
@@ -89,7 +86,9 @@ td span {
     color: gray;
 }
 
-a:hover, a:active, a:focus {
+a:hover,
+a:active,
+a:focus {
     color: #ffdb39;
 }
 
@@ -104,9 +103,8 @@ footer p {
     font-family: system-ui;
 }
 
-
 hr {
     margin: 0;
     opacity: 0.9;
-    height: 2px !important;  
+    height: 2px !important;
 }

@@ -19,8 +19,13 @@
   Home: https://github.com/auwaho/steam-order-scanner
 */
 
-var orderEl = document.querySelector(".market_listing_inline_buyorder_qty").parentElement;
-var orderStr = orderEl.innerText.replace(/[^\d.-|,-]/g, '');
-var orderPrice = GetPriceValueAsInt(orderEl.innerText);
-var breakevenPoint = CalculateAmountToSendForDesiredReceivedAmount(orderPrice, g_rgWalletInfo.wallet_publisher_fee_percent_default).amount/100;
-orderEl.innerHTML += '<br><span title="Break-even point." style="color: #AFAFAF">(' + orderEl.innerText.replace(orderStr, breakevenPoint.toFixed(2)) + ')</span>';
+var orderEl = document.querySelector('.market_listing_inline_buyorder_qty').parentElement
+var orderStr = orderEl.innerText.replace(/[^\d.-|,-]/g, '')
+var orderPrice = GetPriceValueAsInt(orderEl.innerText)
+var breakevenPoint =
+    CalculateAmountToSendForDesiredReceivedAmount(orderPrice, g_rgWalletInfo.wallet_publisher_fee_percent_default)
+        .amount / 100
+orderEl.innerHTML +=
+    '<br><span title="Break-even point." style="color: #AFAFAF">(' +
+    orderEl.innerText.replace(orderStr, breakevenPoint.toFixed(2)) +
+    ')</span>'

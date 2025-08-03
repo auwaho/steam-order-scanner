@@ -35,129 +35,132 @@ chrome.storage.local.get(
         'showMoreOrdersQtySORS'
     ],
     function (result) {
-        scanButton.innerText = result.scanButtonSORS;
-        backgroundScan.checked = result.backgroundScanSORS;
-        backgroundScanDelay.value = result.backgroundScanDelaySORS;
-        cancelHighOrders.checked = result.cancelHighOrdersSORS;
-        cancelHighPercent.value = result.cancelHighPercentSORS;
-        cancelFirstOrders.checked = result.cancelFirstOrdersSORS;
-        pauseOnErrors.value = result.pauseOnErrorsSORS;
-        delayPerOrder.value = result.delayPerOrderSORS;
-        delayRandom.value = result.delayRandomSORS;
-        showMoreOrders.checked = result.showMoreOrdersSORS;
-        showMoreOrdersQty.value = result.showMoreOrdersQtySORS;
+        scanButton.innerText = result.scanButtonSORS
+        backgroundScan.checked = result.backgroundScanSORS
+        backgroundScanDelay.value = result.backgroundScanDelaySORS
+        cancelHighOrders.checked = result.cancelHighOrdersSORS
+        cancelHighPercent.value = result.cancelHighPercentSORS
+        cancelFirstOrders.checked = result.cancelFirstOrdersSORS
+        pauseOnErrors.value = result.pauseOnErrorsSORS
+        delayPerOrder.value = result.delayPerOrderSORS
+        delayRandom.value = result.delayRandomSORS
+        showMoreOrders.checked = result.showMoreOrdersSORS
+        showMoreOrdersQty.value = result.showMoreOrdersQtySORS
 
-        scanButton.dataset.active = result.scanButtonSORS == 'stop';
+        scanButton.dataset.active = result.scanButtonSORS == 'stop'
 
         if (result.scanButtonSORS == 'stop') {
-            backgroundScan.disabled = true;
+            backgroundScan.disabled = true
         }
 
         // turn off button everywhere except steam market page
-        chrome.tabs.query({
-            'active': true,
-            'lastFocusedWindow': true
-        }, function (tabs) {
-            if (tabs[0].url == 'https://steamcommunity.com/market/' || tabs[0].url == 'https://steamcommunity.com/market' || result.backgroundScanSORS == true) {
-                scanButton.disabled = false;
+        chrome.tabs.query(
+            {
+                active: true,
+                lastFocusedWindow: true
+            },
+            function (tabs) {
+                if (
+                    tabs[0].url == 'https://steamcommunity.com/market/' ||
+                    tabs[0].url == 'https://steamcommunity.com/market' ||
+                    result.backgroundScanSORS == true
+                ) {
+                    scanButton.disabled = false
+                }
             }
-        });
+        )
     }
-);
+)
 
 // update button text if ext window open while scan ends
 chrome.storage.onChanged.addListener(function (changes, namespace) {
     if (namespace == 'local' && 'scanButtonSORS' in changes) {
         if (changes.scanButtonSORS.newValue == 'start') {
-
-            scanButton.innerText = 'start';
-            backgroundScan.disabled = false;
-            scanButton.dataset.active = false;
+            scanButton.innerText = 'start'
+            backgroundScan.disabled = false
+            scanButton.dataset.active = false
 
             if (backgroundScan.checked == true) {
                 chrome.storage.local.set({
                     runAutoScanSORS: false
-                });
+                })
             }
-
         } else {
-
             if (backgroundScan.checked == false) {
-
                 chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
-                    var currTab = tabs[0];
+                    var currTab = tabs[0]
                     if (currTab) {
                         chrome.scripting.executeScript({
                             target: { tabId: currTab.id, allFrames: true },
                             files: ['site/scanner.js']
-                        });
+                        })
                     }
-                });
-
+                })
             } else {
                 chrome.storage.local.set({
                     runAutoScanSORS: true
-                });
+                })
             }
 
-            scanButton.innerText = 'stop';
-            backgroundScan.disabled = true;
-            scanButton.dataset.active = true;
+            scanButton.innerText = 'stop'
+            backgroundScan.disabled = true
+            scanButton.dataset.active = true
         }
     }
-});
+})
 
 async function getCurrentTab() {
     chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
-        var currTab = tabs[0];
-        if (currTab) return currTab;
-    });
+        var currTab = tabs[0]
+        if (currTab) return currTab
+    })
 }
 
-
 // update settings onchange
-document.querySelectorAll('input').forEach(el => {
-
+document.querySelectorAll('input').forEach((el) => {
     el.addEventListener('change', () => {
-
         if (el.type == 'number') {
-            let value = el.value;
-            if (value == '') value = el.placeholder;
-            if (value > el.max) value = el.max;
-            if (value < el.min) value = el.min;
+            let value = el.value
+            if (value == '') value = el.placeholder
+            if (value > el.max) value = el.max
+            if (value < el.min) value = el.min
 
-            el.value = value;
-            chrome.storage.local.set({ [`${el.id}SORS`]: value });
+            el.value = value
+            chrome.storage.local.set({ [`${el.id}SORS`]: value })
         }
 
         if (el.type == 'checkbox') {
-            chrome.storage.local.set({ [`${el.id}SORS`]: el.checked });
+            chrome.storage.local.set({ [`${el.id}SORS`]: el.checked })
 
             if (el.id == 'backgroundScan') {
-                chrome.tabs.query({
-                    'active': true,
-                    'lastFocusedWindow': true
-                }, function (tabs) {
-                    if (tabs[0] == undefined || (tabs[0].url != 'https://steamcommunity.com/market/' & tabs[0].url != 'https://steamcommunity.com/market')) {
-                        scanButton.disabled = !el.checked;
+                chrome.tabs.query(
+                    {
+                        active: true,
+                        lastFocusedWindow: true
+                    },
+                    function (tabs) {
+                        if (
+                            tabs[0] == undefined ||
+                            (tabs[0].url != 'https://steamcommunity.com/market/') &
+                                (tabs[0].url != 'https://steamcommunity.com/market')
+                        ) {
+                            scanButton.disabled = !el.checked
+                        }
                     }
-                });
+                )
             }
         }
-
-    });
-});
+    })
+})
 
 scanButton.addEventListener('click', () => {
     chrome.storage.local.get('scanButtonSORS', function (result) {
         chrome.storage.local.set({
             scanButtonSORS: result.scanButtonSORS == 'start' ? 'stop' : 'start'
-        });
-    });
-    scanButton.disabled = true;
+        })
+    })
+    scanButton.disabled = true
     setTimeout(() => {
-        scanButton.disabled = false;
-    }, 500);
-});
-
-
+        scanButton.disabled = false
+    }, 500)
+})
