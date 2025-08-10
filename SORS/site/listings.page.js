@@ -19,13 +19,22 @@
   Home: https://github.com/auwaho/steam-order-scanner
 */
 
-var orderEl = document.querySelector('.market_listing_inline_buyorder_qty').parentElement
-var orderStr = orderEl.innerText.replace(/[^\d.-|,-]/g, '')
-var orderPrice = GetPriceValueAsInt(orderEl.innerText)
-var breakevenPoint =
-    CalculateAmountToSendForDesiredReceivedAmount(orderPrice, g_rgWalletInfo.wallet_publisher_fee_percent_default)
-        .amount / 100
-orderEl.innerHTML +=
-    '<br><span title="Break-even point." style="color: #AFAFAF">(' +
-    orderEl.innerText.replace(orderStr, breakevenPoint.toFixed(2)) +
-    ')</span>'
+// Works on item listing pages like https://steamcommunity.com/market/listings/<appid>/<hashname>
+// Adds break-even selling price calculation for the current buy order on this item.
+// Shows the minimal listing price to receive your buy order amount after Steam fees.
+
+const buyOrderPriceElement = document.querySelector('.market_listing_inline_buyorder_qty')?.parentElement
+
+if (buyOrderPriceElement) {
+    const orderStr = buyOrderPriceElement.innerText.replace(/[^\d.-|,-]/g, '')
+    const orderPrice = GetPriceValueAsInt(buyOrderPriceElement.innerText)
+
+    const breakevenPoint =
+        CalculateAmountToSendForDesiredReceivedAmount(orderPrice, g_rgWalletInfo.wallet_publisher_fee_percent_default)
+            .amount / 100
+
+    buyOrderPriceElement.innerHTML +=
+        '<br><span title="Break-even selling price." style="color: #AFAFAF;">(' +
+        buyOrderPriceElement.innerText.replace(orderStr, breakevenPoint.toFixed(2)) +
+        ')</span>'
+}

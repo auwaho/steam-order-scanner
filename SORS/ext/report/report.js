@@ -34,13 +34,13 @@ chrome.storage.local.get(
         progress.style.width = `${result.scanProgressSORS}%`
         // progress.style.transition = 'width 2s';
 
-        var pref = JSON.parse(`"${result.scanPrefSuffSORS[0]}"`)
-        var suff = JSON.parse(`"${result.scanPrefSuffSORS[1]}"`)
+        const pref = JSON.parse(`"${result.scanPrefSuffSORS[0]}"`)
+        const suff = JSON.parse(`"${result.scanPrefSuffSORS[1]}"`)
 
         result.scanTableBadSORS.forEach((e, i) => {
             // e[appId, hashName, tdOrder, tdOrderBEP, tdMarket, tdMarketWithFee]
-            var profit = pref + (e[4] - e[2]).toFixed(2) + suff
-            var profitPercent = parseInt(100 - (e[2] / e[4]) * 100)
+            const profit = pref + (e[4] - e[2]).toFixed(2) + suff
+            const profitPercent = parseInt(100 - (e[2] / e[4]) * 100)
 
             document.getElementById('badOrd').innerHTML += `
             <tr>

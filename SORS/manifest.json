@@ -28,11 +28,6 @@
             "matches": ["*://steamcommunity.com/market/listings/*/*"],
             "js": ["site/listings.js"],
             "run_at": "document_end"
-        },
-        {
-            "matches": ["*://steamcommunity.com/*"],
-            "js": ["site/cancel.js"],
-            "run_at": "document_end"
         }
     ],
     "web_accessible_resources": [

@@ -19,12 +19,21 @@
   Home: https://github.com/auwaho/steam-order-scanner
 */
 
+// Works on item listing pages like https://steamcommunity.com/market/listings/<appid>/<hashname>
+// Enhancements on item listing pages:
+// - Shows number of sales in the last 24 hours (adds a label above the price history)
+// - Displays the break-even listing price for your buy order on this item
+// - Reveals listing prices without Steam fees (enables the price-without-fee element)
+// - Optionally expands buy/sell order tables to show more rows (configurable in extension settings)
+
 String.prototype.extract = function (t, r) {
-    s = this
-    var e = s.indexOf(t)
+    let s = String(this)
+    let e = s.indexOf(t)
     if (!(e >= 0)) return ''
-    if (((s = s.substring(e + t.length)), r)) {
-        if (!((e = s.indexOf(r)) >= 0)) return ''
+    s = s.substring(e + t.length)
+    if (r) {
+        e = s.indexOf(r)
+        if (!(e >= 0)) return ''
         s = s.substring(0, e)
     }
     return s
@@ -34,7 +43,7 @@ const source = document.documentElement.outerHTML
 
 // get last 24 hours sales and append to median graph
 ;(function dailySales() {
-    var salesPerDay = 0
+    let salesPerDay = 0
     const salesGraph = JSON.parse(source.extract('var line1=', ';'))
     const dayBefore = Date.parse(salesGraph[salesGraph.length - 1][0]) - 86400000
     for (let sale = salesGraph.length - 1; sale >= salesGraph.length - 24; sale--) {
@@ -46,13 +55,13 @@ const source = document.documentElement.outerHTML
     }
 
     const zoomCtrls = document.getElementsByClassName('zoom_controls pricehistory_zoom_controls')[0]
-    var salesLabel = document.createElement('label')
+    const salesLabel = document.createElement('label')
     salesLabel.innerHTML = `${salesPerDay} sold in the last 24 hours`.fontcolor('white')
     zoomCtrls.parentNode.insertBefore(salesLabel, zoomCtrls)
 })()
 
-if (!document.getElementById('market_commodity_order_spread')) {
-    // add market listing price without fee
+// add market listing price without fee
+;(function addMarketListingPriceWithoutFee() {
     const feeStyle = document.createElement('style')
     feeStyle.innerHTML = '.market_listing_price_without_fee { display:block; color:gray; }'
     document.head.appendChild(feeStyle)
@@ -63,7 +72,7 @@ if (!document.getElementById('market_commodity_order_spread')) {
         script.src = chrome.runtime.getURL('site/listings.page.js')
         document.body.appendChild(script)
     }
-}
+})()
 
 // show more orders and sales if enabled
 chrome.storage.local.get(['showMoreOrdersSORS', 'showMoreOrdersQtySORS'], function (result) {

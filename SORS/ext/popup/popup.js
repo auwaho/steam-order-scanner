@@ -71,7 +71,7 @@ chrome.storage.onChanged.addListener(function (changes, namespace) {
             scanButton.dataset.active = false
         } else {
             chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
-                var currTab = tabs[0]
+                const currTab = tabs[0]
                 if (currTab) {
                     chrome.scripting.executeScript({
                         target: { tabId: currTab.id, allFrames: true },
@@ -86,21 +86,13 @@ chrome.storage.onChanged.addListener(function (changes, namespace) {
     }
 })
 
-async function getCurrentTab() {
-    chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
-        var currTab = tabs[0]
-        if (currTab) return currTab
-    })
-}
-
 // update settings onchange
 document.querySelectorAll('input').forEach((el) => {
     el.addEventListener('change', () => {
         if (el.type == 'number') {
-            let value = el.value
-            if (value == '') value = el.placeholder
-            if (value > el.max) value = el.max
-            if (value < el.min) value = el.min
+            let value = parseFloat(el.value) || parseFloat(el.placeholder)
+            if (value > parseFloat(el.max)) value = parseFloat(el.max)
+            if (value < parseFloat(el.min)) value = parseFloat(el.min)
 
             el.value = value
             chrome.storage.local.set({ [`${el.id}SORS`]: value })

@@ -19,26 +19,33 @@
   Home: https://github.com/auwaho/steam-order-scanner
 */
 
-var orderList = document.getElementsByClassName(
+// Works on the main market page: https://steamcommunity.com/market/
+// Enhancements on the main market page:
+// - Shows total quantity and total sum for your buy orders
+// - Shows total quantity and sums for your sell listings (with and without fees)
+// - Displays break-even selling prices for each buy order (via injected page script)
+
+let buyOrderQtyElements = document.getElementsByClassName(
     'market_listing_right_cell market_listing_my_price market_listing_buyorder_qty'
 )
-if (orderList.length > 1) {
+
+if (buyOrderQtyElements.length > 1) {
     addQnt()
     addBreakEven()
 
-    var observer = new MutationObserver(function () {
-        orderList = document.getElementsByClassName(
+    const observer = new MutationObserver(function () {
+        buyOrderQtyElements = document.getElementsByClassName(
             'market_listing_right_cell market_listing_my_price market_listing_buyorder_qty'
         )
-        if (!orderList[1].innerText.includes('/')) {
+        if (!buyOrderQtyElements[1].innerText.includes('/')) {
             addQnt()
 
-            document.querySelector('#breakEven').remove()
+            document.querySelector('#breakEven')?.remove()
             addBreakEven()
         }
     })
 
-    observer.observe(orderList[0], {
+    observer.observe(buyOrderQtyElements[0], {
         attributes: true,
         childList: true,
         characterData: true
@@ -46,17 +53,17 @@ if (orderList.length > 1) {
 
     async function addQnt() {
         try {
-            var myList = await (await fetch('//steamcommunity.com/market/mylistings/?norender=1')).json()
+            const myList = await (await fetch('//steamcommunity.com/market/mylistings/?norender=1')).json()
 
-            var ordersSum = 0
-            var listingsSum = 0
-            var listingsFee = 0
-            var listingsQty = myList.total_count
+            let ordersSum = 0
+            let listingsSum = 0
+            let listingsFee = 0
+            let listingsQty = myList.total_count
 
-            for (let i = 1; i < orderList.length; i++) {
+            for (let i = 1; i < buyOrderQtyElements.length; i++) {
                 ordersSum += (myList.buy_orders[i - 1].price / 100) * myList.buy_orders[i - 1].quantity_remaining
-                var newQnt = `${myList.buy_orders[i - 1].quantity_remaining} / ${myList.buy_orders[i - 1].quantity}`
-                orderList[
+                const newQnt = `${myList.buy_orders[i - 1].quantity_remaining} / ${myList.buy_orders[i - 1].quantity}`
+                buyOrderQtyElements[
                     i
                 ].innerHTML = `<span class="market_table_value"><span class="market_listing_price">${newQnt}</span></span>`
             }
@@ -67,7 +74,7 @@ if (orderList.length > 1) {
                         listingsFee += myList.listings[i].converted_fee
                     }
                 } else {
-                    var nextPage = await (
+                    const nextPage = await (
                         await fetch(`//steamcommunity.com/market/mylistings/?norender=1&start=${x}`)
                     ).json()
                     for (let i = 0; i < nextPage.listings.length; i++) {
@@ -88,7 +95,7 @@ if (orderList.length > 1) {
     }
 
     function addBreakEven() {
-        var script = document.createElement('script')
+        const script = document.createElement('script')
         script.id = 'breakEven'
         script.src = chrome.runtime.getURL('site/market.page.js')
         document.body.appendChild(script)
