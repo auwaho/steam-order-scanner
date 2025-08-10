@@ -4,47 +4,50 @@
 <h1 align="center">Steam Order Scanner</h1>
 
 <p align="center">
-  <a href="https://chrome.google.com/webstore/detail/steam-order-scanner/poaddkofidcihbbodleahclcjoghdilh"><img src="https://storage.googleapis.com/chrome-gcs-uploader.appspot.com/image/WlD8wC6g8khYWPJUsQceQkhXSlv1/iNEddTyWiMfLSwFD6qGq.png" alt="Get uBlock Origin for Firefox"></a> 
+  <a href="https://chrome.google.com/webstore/detail/steam-order-scanner/poaddkofidcihbbodleahclcjoghdilh"><img src="https://developer.chrome.com/static/docs/webstore/branding/image/UV4C4ybeBTsZt43U4xis.png" alt="Get Steam Order Scanner for Chrome"></a> 
 </p>
 
 <h3 align="center">
-  <a href="https://github.com/auwaho/steam-order-scanner/releases/download/1.7.0/SORS.zip">Direct dowload link</a>
+  <a href="https://github.com/auwaho/steam-order-scanner/releases/latest">Direct download (GitHub release)</a>
 </h3>
 
-**Note: I highly recommend starting the first scan without any cancel order marks, just to make sure the extension works correctly in your case. ~~It was also noted that any extensions that modify the content on the market page may lead to incorrect extension work. Just make sure the market page is fully loaded before scanning.~~ Сhecked compatibility with extensions: Steam Inventory Helper, Steam Trader Helper, Augmented Steam.**
+<p align="center"><b>Manifest V3</b>: This version targets Chrome Manifest V3 (v2.0.0+). For the legacy Manifest V2 build, download <a href="https://github.com/auwaho/steam-order-scanner/releases/tag/1.7.1">v1.7.1</a>.</p>
+
+**Note: I highly recommend running your first scan with cancellation options disabled ("Cancel first in queue" and "Cancel if below (±%)") to make sure the extension works correctly for you. Compatibility checked with: Steam Inventory Helper, Steam Trader Helper, Augmented Steam.**
 
 ## Description
 
-Steam Order Scanner (SORS) is a Google Chrome browser extension which main function is to keep your Steam Community Market buy orders profitable. The extension also adds some useful functionality to the Market pages. More interesting features coming soon, wait for updates!
+Steam Order Scanner (SORS) is a Chrome extension that helps keep your Steam Community Market buy orders profitable and enhances market pages with useful features.
 
-![alt text](https://github.com/auwaho/steam-order-scanner/blob/master/screenshots/screenshot.png "Steam Listings Scanner")
+![alt text](https://github.com/auwaho/steam-order-scanner/blob/master/screenshots/screenshot.png 'Steam Listings Scanner')
 
 <details>
   <summary>All screenshots</summary>
   
 ![alt text](https://github.com/auwaho/steam-order-scanner/blob/master/screenshots/screenshot_7.png "Steam Listings Scanner")
 
-![alt text](https://github.com/auwaho/steam-order-scanner/blob/master/screenshots/screenshot_2.png "Steam Listings Scanner")
+![alt text](https://github.com/auwaho/steam-order-scanner/blob/master/screenshots/screenshot_2.png 'Steam Listings Scanner')
 
-![alt text](https://github.com/auwaho/steam-order-scanner/blob/master/screenshots/screenshot_3.png "Steam Listings Scanner")
+![alt text](https://github.com/auwaho/steam-order-scanner/blob/master/screenshots/screenshot_3.png 'Steam Listings Scanner')
 
-![alt text](https://github.com/auwaho/steam-order-scanner/blob/master/screenshots/screenshot_4.png "Steam Listings Scanner")
+![alt text](https://github.com/auwaho/steam-order-scanner/blob/master/screenshots/screenshot_4.png 'Steam Listings Scanner')
 
-![alt text](https://github.com/auwaho/steam-order-scanner/blob/master/screenshots/screenshot_5.png "Steam Listings Scanner")
+![alt text](https://github.com/auwaho/steam-order-scanner/blob/master/screenshots/screenshot_5.png 'Steam Listings Scanner')
 
-![alt text](https://github.com/auwaho/steam-order-scanner/blob/master/screenshots/screenshot_6.png "Steam Listings Scanner")
+![alt text](https://github.com/auwaho/steam-order-scanner/blob/master/screenshots/screenshot_6.png 'Steam Listings Scanner')
 
 </details>
 
-#### Extension functions for now: 
-- **single scan** your buy order list for profitability (individual listings and commodity type items). Marks each order with color (green = ok, yellow = too low, red = overpriced). Refers to your set values. Adding overpiced items after fully completed scan to report;
-- **autoscan** works by the same logic and uses the same settings as single scan but doesn't require market tab open. If you close the browser with the autoscan turned on, it will start itself when you open it;
-- **auto cancellation** overpriced or too low orders;
-- displaying **"market_listing_price_without_fee"** under the price of each lot on the item page;
-- ability to show **more buy orders and sales** (sales for commodity type items) on the item page. Quantity sets up in the popup window;
-- showing **number of lots purchased** out of set number in each order on the main market page;
-- showing **sum of orders and listings** near headers on the main market page;
-- showing **last 24 hours sold items quantity** under median sales graph on the item page. 
+#### Extension features
+
+-   **Single scan** of your buy orders for profitability (individual listings and commodity items). Marks each order with color: green = profitable, yellow = first in queue, red = unprofitable. Uses your configured thresholds. Adds flagged orders to the scan report at the end.
+-   **Optional auto-cancellation** of risky orders. Controlled by scan options: "Cancel first in queue" and "Cancel if below (±%)".
+-   Display **`market_listing_price_without_fee`** under the price of each lot on the item page.
+-   Ability to **show more buy and sell orders** on item pages (for commodity items: sales). Quantity is configurable in the popup.
+-   Show **number of lots purchased** out of the set quantity in each order on the main market page.
+-   Show **totals of orders and listings** near headers on the main market page.
+-   Show **last 24 hours sold quantity** under the median sales graph on item pages.
+-   **Scan report**: view the last full scan report from the extension popup.
 
 ## Supporting the project
 

@@ -27,10 +27,13 @@
                     <p
                         class="title__help"
                         title=">
-   Scan options info:
-   1.  Cancel first placed: mark order & cancel (if checked) if the order is first in the queue.
-   2.  Cancel if less (±%): mark order & cancel (if checked) if profit percent less then indicated value.
-   _"
+    Scan options:
+        • Cancel first in queue — mark and cancel (if enabled) when your order is first in the queue.
+        • Cancel if below (±%) — mark and cancel (if enabled) when profit percent is below the threshold.
+        • Pause on errors (min) — wait this many minutes after few errors in a row.
+        • Per-order delay (ms) — base delay between orders.
+        • Random delay (+ms) — random extra delay added to the base.
+    _"
                     >
                         ?
                     </p>
@@ -38,7 +41,7 @@
 
                 <div class="setting">
                     <label class="container"
-                        >Cancel first placed
+                        >Cancel first in queue
                         <input type="checkbox" id="cancelFirstOrders" name="cancelFirstOrders" unchecked />
                         <span class="checkmark"></span>
                     </label>
@@ -46,7 +49,7 @@
 
                 <div class="setting">
                     <label class="container"
-                        >Cancel if less (&plusmn;%)
+                        >Cancel if below (&plusmn;%)
                         <input type="checkbox" id="cancelHighOrders" name="cancelHighOrders" unchecked />
                         <span class="checkmark"></span>
                     </label>
@@ -59,30 +62,31 @@
                 </div>
 
                 <div class="setting">
-                    <label>Delay per order (ms)</label>
+                    <label>Per-order delay (ms)</label>
                     <input type="number" id="delayPerOrder" min="0" max="9999" placeholder="200" />
                 </div>
 
                 <div class="setting">
-                    <label>Delay random (+ms)</label>
+                    <label>Random delay (+ms)</label>
                     <input type="number" id="delayRandom" min="0" max="9999" placeholder="50" />
                 </div>
             </div>
 
             <div class="settings__block">
                 <div class="title">
-                    <h2 class="title__text">Market customization</h2>
+                    <h2 class="title__text">Market options</h2>
                     <p
                         class="title__help"
                         title=">
-   Show more buy orders: expands buy/sell request tables with set value on the item pages if it possible.
-   Also there are few more useful things by default such as:
-      •  showing lot prices without fee on the item pages
-      •  showing number of sold items in the last 24 hours in the left bottom corner of median sale prices 
-         graph on the item page
-      •  showing sum of all orders and sell listings on the main market page near headers
-      •  adding left/was quantity to all orders on the main market page
-   _"
+    Market options:
+        • Show more orders — expands buy/sell tables on item pages when possible.
+        
+    Also includes by default:
+        • Show lot prices without fee on item pages.
+        • Show sold in last 24h on the price graph.
+        • Show totals of orders and listings on the main market page.
+        • Add left/was quantities to orders on the main market page.
+    _"
                     >
                         ?
                     </p>
