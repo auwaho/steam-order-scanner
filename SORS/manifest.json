@@ -3,7 +3,7 @@
     "name": "Steam Order Scanner",
     "version": "2.0.0",
     "short_name": "SORS",
-    "description": "Keeps your Steam Market buy orders profitable and enhances market pages with useful features.",
+    "description": "Helps keep your Steam Market buy orders profitable and enhances market pages with useful features.",
     "icons": {
         "16": "ico/16.png",
         "48": "ico/48.png",
@@ -13,6 +13,9 @@
     "host_permissions": ["*://steamcommunity.com/*"],
     "action": {
         "default_popup": "ext/popup/popup.html"
+    },
+    "background": {
+        "service_worker": "background.js"
     },
     "content_scripts": [
         {
