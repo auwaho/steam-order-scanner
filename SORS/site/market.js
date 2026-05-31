@@ -63,9 +63,8 @@ if (buyOrderQtyElements.length > 1) {
             for (let i = 1; i < buyOrderQtyElements.length; i++) {
                 ordersSum += (myList.buy_orders[i - 1].price / 100) * myList.buy_orders[i - 1].quantity_remaining
                 const newQnt = `${myList.buy_orders[i - 1].quantity_remaining} / ${myList.buy_orders[i - 1].quantity}`
-                buyOrderQtyElements[
-                    i
-                ].innerHTML = `<span class="market_table_value"><span class="market_listing_price">${newQnt}</span></span>`
+                buyOrderQtyElements[i].innerHTML =
+                    `<span class="market_table_value"><span class="market_listing_price">${newQnt}</span></span>`
             }
             for (let x = 0; x < listingsQty; x += 10) {
                 if (x == 0) {
@@ -95,9 +94,14 @@ if (buyOrderQtyElements.length > 1) {
     }
 
     function addBreakEven() {
-        const script = document.createElement('script')
-        script.id = 'breakEven'
-        script.src = chrome.runtime.getURL('site/market.page.js')
-        document.body.appendChild(script)
+        const feesScript = document.createElement('script')
+        feesScript.src = chrome.runtime.getURL('site/steam-market-fees.js')
+        feesScript.onload = () => {
+            const script = document.createElement('script')
+            script.id = 'breakEven'
+            script.src = chrome.runtime.getURL('site/market.page.js')
+            document.body.appendChild(script)
+        }
+        document.body.appendChild(feesScript)
     }
 }

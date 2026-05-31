@@ -68,9 +68,14 @@ const source = document.documentElement.outerHTML
 
     // add price with fee for buy order
     if (document.querySelector('#tabContentsMyListings')) {
-        var script = document.createElement('script')
-        script.src = chrome.runtime.getURL('site/listings.page.js')
-        document.body.appendChild(script)
+        const feesScript = document.createElement('script')
+        feesScript.src = chrome.runtime.getURL('site/steam-market-fees.js')
+        feesScript.onload = () => {
+            const script = document.createElement('script')
+            script.src = chrome.runtime.getURL('site/listings.page.js')
+            document.body.appendChild(script)
+        }
+        document.body.appendChild(feesScript)
     }
 })()
 
@@ -151,8 +156,8 @@ chrome.storage.local.get(['showMoreOrdersSORS', 'showMoreOrdersQtySORS'], functi
                 var row = `
             <tr>
               <td align="right" class="">${histogram.price_prefix}${parseFloat(prc).toFixed(2)}${
-                    histogram.price_suffix
-                }</td>
+                  histogram.price_suffix
+              }</td>
               <td align="right">${qnt - qntSumm}</td>
             </tr>
           `

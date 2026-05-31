@@ -216,9 +216,7 @@
                     .slice(0, 10)
                 const fivePrices = tenPrices.slice(Math.max(tenPrices.length - 5, 1))
                 marketPrice = fivePrices.reduce((a, b) => a + b, 0) / fivePrices.length - 1
-                marketPrice =
-                    marketPrice -
-                    CalculateFeeAmount(marketPrice, g_rgWalletInfo.wallet_publisher_fee_percent_default).fees
+                marketPrice = GetItemPriceFromTotal(parseInt(marketPrice), g_rgWalletInfo)
             }
 
             /* preventing false cancels (just in case) */
@@ -231,14 +229,10 @@
 
             // add to bad orders array
             if (isFirstInQueue || isUnprofitable) {
-                const breakEvenPoint = CalculateAmountToSendForDesiredReceivedAmount(
-                    orderPrice,
-                    g_rgWalletInfo.wallet_publisher_fee_percent_default
-                ).amount
-                const marketPriceWithFee = CalculateAmountToSendForDesiredReceivedAmount(
-                    marketPrice,
-                    g_rgWalletInfo.wallet_publisher_fee_percent_default
-                ).amount
+                const ppct = parseFloat(g_rgWalletInfo.wallet_publisher_fee_percent_default ?? 0.1)
+                const spct = parseFloat(g_rgWalletInfo.wallet_fee_percent ?? 0.05)
+                const breakEvenPoint = GetTotalWithFees(orderPrice, ppct, spct, g_rgWalletInfo)
+                const marketPriceWithFee = GetTotalWithFees(parseInt(marketPrice), ppct, spct, g_rgWalletInfo)
                 const tdOrder = (orderPrice / 100).toFixed(2)
                 const tdOrderBEP = (breakEvenPoint / 100).toFixed(2)
                 const tdMarket = (marketPrice / 100).toFixed(2)
@@ -372,68 +366,4 @@
         })
     }
 
-    function CalculateAmountToSendForDesiredReceivedAmount(receivedAmount, publisherFee) {
-        if (!g_rgWalletInfo['wallet_fee']) {
-            return receivedAmount
-        }
-        publisherFee = typeof publisherFee == 'undefined' ? 0 : publisherFee
-        const nSteamFee = parseInt(
-            Math.floor(
-                Math.max(
-                    receivedAmount * parseFloat(g_rgWalletInfo['wallet_fee_percent']),
-                    g_rgWalletInfo['wallet_fee_minimum']
-                ) + parseInt(g_rgWalletInfo['wallet_fee_base'])
-            )
-        )
-        const nPublisherFee = parseInt(Math.floor(publisherFee > 0 ? Math.max(receivedAmount * publisherFee, 1) : 0))
-        const nAmountToSend = receivedAmount + nSteamFee + nPublisherFee
-        return {
-            steam_fee: nSteamFee,
-            publisher_fee: nPublisherFee,
-            fees: nSteamFee + nPublisherFee,
-            amount: parseInt(nAmountToSend)
-        }
-    }
-
-    function CalculateFeeAmount(amount, publisherFee) {
-        if (!g_rgWalletInfo['wallet_fee']) return 0
-        publisherFee = typeof publisherFee == 'undefined' ? 0 : publisherFee
-        // Since CalculateFeeAmount has a Math.floor, we could be off a cent or two. Let's check:
-        let iterations = 0 // shouldn't be needed, but included to be sure nothing unforseen causes us to get stuck
-        let nEstimatedAmountOfWalletFundsReceivedByOtherParty = parseInt(
-            (amount - parseInt(g_rgWalletInfo['wallet_fee_base'])) /
-                (parseFloat(g_rgWalletInfo['wallet_fee_percent']) + parseFloat(publisherFee) + 1)
-        )
-        let bEverUndershot = false
-        let fees = CalculateAmountToSendForDesiredReceivedAmount(
-            nEstimatedAmountOfWalletFundsReceivedByOtherParty,
-            publisherFee
-        )
-        while (fees.amount != amount && iterations < 10) {
-            if (fees.amount > amount) {
-                if (bEverUndershot) {
-                    fees = CalculateAmountToSendForDesiredReceivedAmount(
-                        nEstimatedAmountOfWalletFundsReceivedByOtherParty - 1,
-                        publisherFee
-                    )
-                    fees.steam_fee += amount - fees.amount
-                    fees.fees += amount - fees.amount
-                    fees.amount = amount
-                    break
-                } else {
-                    nEstimatedAmountOfWalletFundsReceivedByOtherParty--
-                }
-            } else {
-                bEverUndershot = true
-                nEstimatedAmountOfWalletFundsReceivedByOtherParty++
-            }
-            fees = CalculateAmountToSendForDesiredReceivedAmount(
-                nEstimatedAmountOfWalletFundsReceivedByOtherParty,
-                publisherFee
-            )
-            iterations++
-        }
-        // fees.amount should equal the passed in amount
-        return fees
-    }
 })()

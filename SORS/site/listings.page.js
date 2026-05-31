@@ -29,9 +29,9 @@ if (buyOrderPriceElement) {
     const orderStr = buyOrderPriceElement.innerText.replace(/[^\d.-|,-]/g, '')
     const orderPrice = GetPriceValueAsInt(buyOrderPriceElement.innerText)
 
-    const breakevenPoint =
-        CalculateAmountToSendForDesiredReceivedAmount(orderPrice, g_rgWalletInfo.wallet_publisher_fee_percent_default)
-            .amount / 100
+    const ppct = parseFloat(g_rgWalletInfo.wallet_publisher_fee_percent_default ?? 0.1)
+    const spct = parseFloat(g_rgWalletInfo.wallet_fee_percent ?? 0.05)
+    const breakevenPoint = GetTotalWithFees(orderPrice, ppct, spct, g_rgWalletInfo) / 100
 
     buyOrderPriceElement.innerHTML +=
         '<br><span title="Break-even selling price." style="color: #AFAFAF;">(' +

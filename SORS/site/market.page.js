@@ -32,13 +32,9 @@ buyQtyList.forEach((element) => {
         const priceStr = buyPriceElement.innerText.replace(/[^\d.-|,-]/g, '')
         const orderPrice = GetPriceValueAsInt(buyPriceElement.innerText)
 
-        const breakevenPoint =
-            GetTotalWithFees(
-                orderPrice,
-                g_rgWalletInfo.wallet_publisher_fee_percent_default,
-                g_rgWalletInfo.wallet_fee_percent,
-                g_rgWalletInfo
-            ) / 100
+        const ppct = parseFloat(g_rgWalletInfo.wallet_publisher_fee_percent_default ?? 0.1)
+        const spct = parseFloat(g_rgWalletInfo.wallet_fee_percent ?? 0.05)
+        const breakevenPoint = GetTotalWithFees(orderPrice, ppct, spct, g_rgWalletInfo) / 100
 
         buyPriceElement.innerHTML +=
             '<br><span title="Break-even selling price." style="color: #AFAFAF">(' +

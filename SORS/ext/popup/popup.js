@@ -75,7 +75,7 @@ chrome.storage.onChanged.addListener(function (changes, namespace) {
                 if (currTab) {
                     chrome.scripting.executeScript({
                         target: { tabId: currTab.id, allFrames: true },
-                        files: ['site/scanner.js']
+                        files: ['site/steam-market-fees.js', 'site/scanner.js']
                     })
                 }
             })
