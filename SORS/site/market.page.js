@@ -33,10 +33,12 @@ buyQtyList.forEach((element) => {
         const orderPrice = GetPriceValueAsInt(buyPriceElement.innerText)
 
         const breakevenPoint =
-            CalculateAmountToSendForDesiredReceivedAmount(
+            GetTotalWithFees(
                 orderPrice,
-                g_rgWalletInfo.wallet_publisher_fee_percent_default
-            ).amount / 100
+                g_rgWalletInfo.wallet_publisher_fee_percent_default,
+                g_rgWalletInfo.wallet_fee_percent,
+                g_rgWalletInfo
+            ) / 100
 
         buyPriceElement.innerHTML +=
             '<br><span title="Break-even selling price." style="color: #AFAFAF">(' +
