@@ -1,8 +1,8 @@
 /*
-  Steam Order Scanner - a browser extension for Steam Community Market 
+  Steam Order Scanner - a browser extension for Steam Community Market
   that helps keep your orders profitable.
   Copyright (C) 2020 Artem Hryhorov
-  
+
   This program is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
   the Free Software Foundation, either version 3 of the License, or
@@ -133,7 +133,7 @@
         console.log('%c ▼ single scan start ▼ ', 'background: #000000; color: #FFD700')
         document.getElementsByClassName('market_tab_well_tabs')[0].style.pointerEvents = 'none'
 
-        for (let oldOrder of ordersArray) {
+        for (const oldOrder of ordersArray) {
             oldOrder.style.backgroundColor = 'rgba(0, 0, 0, 0.2)'
             oldOrder.style.border = '1px solid rgba(0, 0, 0, 0)'
         }
@@ -143,7 +143,6 @@
         })
 
         let sessionId = ''
-        let marketPrice
         let prefix = ''
         let suffix = ''
         const table = []
@@ -153,20 +152,30 @@
         if (isScanStopped) return
 
         const myListings = JSON.parse(myListingsJson)
-        const buyOrders = myListings.buy_orders
+        const myBuyOrders = myListings.buy_orders
+
+        const marketHtml = await fetchWithRetry('https://steamcommunity.com/market/')
+        g_rgWalletInfo = parseWalletInfoFromHtml(marketHtml)
+        if (Object.keys(g_rgWalletInfo).length === 0) {
+            chrome.storage.local.set({ scanButtonSORS: 'start' })
+            document.getElementsByClassName('market_tab_well_tabs')[0].style.pointerEvents = ''
+            alert('Cannot load wallet info. Make sure you are logged in to Steam.')
+            return
+        }
+        sessionId = parseSessionIdFromHtml(marketHtml)
 
         for (const [i, order] of ordersArray.entries()) {
             const orderId = order.id.substring(11)
-            const orderObj = buyOrders.find((o) => o.buy_orderid === orderId)
+            const orderObj = myBuyOrders.find((o) => o.buy_orderid === orderId)
             if (orderObj === undefined) continue
 
             const appId = parseInt(orderObj.appid)
             const hashName = orderObj.hash_name
-            const orderHref = `https://steamcommunity.com/market/listings/${appId}/${fixedEncodeURIComponent(hashName)}`
+            const itemHref = `https://steamcommunity.com/market/listings/${appId}/${fixedEncodeURIComponent(hashName)}`
             const orderPrice = parseInt(orderObj.price)
             // var qty = parseInt(orderObj.quantity);
             // var qtyRemaining = parseInt(orderObj.quantity_remaining);
-            const sourceCode = await fetchWithRetry(orderHref)
+            const sourceCode = await fetchWithRetry(itemHref)
 
             if (isScanStopped) {
                 console.log('%c ■  single scan end  ■ ', 'background: #000000; color: #FFD700')
@@ -174,49 +183,53 @@
                 return
             }
 
-            if (Object.keys(g_rgWalletInfo).length === 0) {
-                g_rgWalletInfo = JSON.parse(sourceCode.extract(`g_rgWalletInfo = `, `;`))
-            }
-
             if (prefix + suffix == '') {
                 prefix = sourceCode.extract(`strFormatPrefix = "`, `"`)
                 suffix = sourceCode.extract(`strFormatSuffix = "`, `"`)
             }
-            if (sessionId == '') {
-                sessionId = sourceCode.extract(`g_sessionID = "`, `"`)
+
+            const queryData = extractSteamQueryData(sourceCode)
+
+            const marketDescription = extractMarketDescription(queryData, appId, hashName)
+            const isCommodityItem = marketDescription?.commodity === true
+
+            // // Extract an array containing details for each item variant (exterior/category)
+            // const marketPriceHistoryList = extractMarketPriceHistoryList(queryData)
+            // // Extract prices for the exact item; each element includes: [ price_median, purchases, time ]
+            // const marketPriceHistory = marketPriceHistoryList.find((item) => item.itemName === hashName).prices
+
+            // Extract buy and sell orders from the order book
+            const marketOrderBook = extractMarketOrderBook(queryData)
+
+            // Extract buy and sell orders from the order book; each element includes: [ priceRaw, price, quantity ]
+            const marketBuyOrders = parseCompactOrders(marketOrderBook.buyOrders)
+            const marketSellOrders = parseCompactOrders(marketOrderBook.sellOrders)
+
+            if (!marketBuyOrders.length) {
+                continue
             }
 
-            const itemNameId = sourceCode.extract('Market_LoadOrderSpread( ', ' )')
-            const itemGraphLink = `https://steamcommunity.com/market/itemordershistogram?country=${g_rgWalletInfo.wallet_country}&language=english&currency=${g_rgWalletInfo.wallet_currency}&item_nameid=${itemNameId}&two_factor=0`
-
-            const itemGraphJson = await fetchWithRetry(itemGraphLink)
-
-            if (isScanStopped) return
-
-            const itemGraph = JSON.parse(itemGraphJson)
-
             // for trFst
-            const firstOrderPrice = parseInt(itemGraph.buy_order_graph[0][0] * 100)
+            const firstOrderPrice = marketBuyOrders[0].priceRaw
+            let marketPrice = 0
 
             // for table
-            if (sourceCode.includes('<div id="market_commodity_order_spread">')) {
+            if (isCommodityItem) {
                 const avarageOfTwo =
-                    itemGraph.sell_order_graph
-                        .map((a) => a[0])
+                    marketSellOrders
+                        .map((a) => a.price)
                         .slice(0, 4)
                         .reduce((a, b) => a + b) /
                         4 -
                     0.01
                 marketPrice = avarageOfTwo < 0.16 ? (avarageOfTwo - 0.02) * 100 : Math.ceil((avarageOfTwo / 1.15) * 100)
             } else {
-                //var tenPrices = getFromBetween.get(sourceCode, '<span class="market_listing_price market_listing_price_without_fee">', '</span>').map(s => s.replace(/[^\d^.^,]/g, '').replace(',', '.') * 100).filter(Number);
-                //var tenPrices = itemGraph.sell_order_graph.map(a => a[0] * 100).slice(0, 10);
-                const tenPrices = itemGraph.sell_order_graph
-                    .flatMap((a) => Array(parseInt(a[1])).fill(a[0] * 100))
+                const tenPrices = marketSellOrders
+                    .flatMap((a) => Array(parseInt(a.quantity)).fill(a.priceRaw))
                     .slice(0, 10)
                 const fivePrices = tenPrices.slice(Math.max(tenPrices.length - 5, 1))
                 marketPrice = fivePrices.reduce((a, b) => a + b, 0) / fivePrices.length - 1
-                marketPrice = GetItemPriceFromTotal(parseInt(marketPrice), g_rgWalletInfo)
+                marketPrice = GetItemPriceFromTotal(marketPrice, g_rgWalletInfo)
             }
 
             /* preventing false cancels (just in case) */
@@ -232,7 +245,7 @@
                 const ppct = parseFloat(g_rgWalletInfo.wallet_publisher_fee_percent_default ?? 0.1)
                 const spct = parseFloat(g_rgWalletInfo.wallet_fee_percent ?? 0.05)
                 const breakEvenPoint = GetTotalWithFees(orderPrice, ppct, spct, g_rgWalletInfo)
-                const marketPriceWithFee = GetTotalWithFees(parseInt(marketPrice), ppct, spct, g_rgWalletInfo)
+                const marketPriceWithFee = GetTotalWithFees(marketPrice, ppct, spct, g_rgWalletInfo)
                 const tdOrder = (orderPrice / 100).toFixed(2)
                 const tdOrderBEP = (breakEvenPoint / 100).toFixed(2)
                 const tdMarket = (marketPrice / 100).toFixed(2)
@@ -260,14 +273,16 @@
                 order.style.backgroundColor = '#4C1C1C'
 
                 // log unprofitable order
-                console.log(`%c ${hashName} (${orderPrice / 100}/${marketPrice / 100}): ${orderHref}`, 'color: red')
+                console.log(`%c ${hashName} (${orderPrice / 100}/${marketPrice / 100}): ${itemHref}`, 'color: red')
             } else {
                 // order is profitable, change order bg color to green
                 order.style.backgroundColor = '#1C4C1C'
             }
 
             console.log('Check')
-            chrome.storage.local.set({ scanProgressSORS: parseInt(((i + 1) / buyOrders.length) * 100) })
+            chrome.storage.local.set({
+                scanProgressSORS: ((i + 1) / ordersArray.length) * 100
+            })
             chrome.storage.local.set({ scanTableBadSORS: table })
 
             await wait(random(delayPerOrder, (delayRandom / 100) * delayPerOrder + delayPerOrder))
@@ -285,6 +300,114 @@
     }
 
     /* OTHER FUNCTIONS */
+    function parseWalletInfoFromHtml(html) {
+        const match = html.match(/g_rgWalletInfo\s*=\s*(\{[\s\S]*?\})\s*;/)
+        if (!match) return {}
+        try {
+            return JSON.parse(match[1])
+        } catch (e) {
+            return {}
+        }
+    }
+
+    function parseSessionIdFromHtml(html) {
+        const match = html.match(/g_sessionID\s*=\s*"([^"]+)"/)
+        return match ? match[1] : ''
+    }
+
+    function extractSteamQueryData(pageSource) {
+        const match = pageSource.match(/window\.SSR\.renderContext=JSON\.parse\("([\s\S]*?)"\);/)
+
+        if (!match) {
+            throw new Error('window.SSR.renderContext not found')
+        }
+
+        const renderContextString = JSON.parse(`"${match[1]}"`)
+        const renderContext = JSON.parse(renderContextString)
+
+        if (!renderContext.queryData) {
+            throw new Error('queryData not found')
+        }
+
+        return JSON.parse(renderContext.queryData)
+    }
+
+    function extractMarketPriceHistoryList(queryData) {
+        const result = []
+
+        for (const query of queryData.queries ?? []) {
+            const key = query.queryKey
+
+            const isPriceHistory = Array.isArray(key) && key[0] === 'market' && key[1] === 'pricehistory'
+
+            if (!isPriceHistory) continue
+
+            result.push({
+                appId: key[2],
+                itemName: key[3],
+                prices: query.state?.data?.prices ?? []
+            })
+        }
+
+        return result
+    }
+
+    function extractMarketDescription(queryData, appId, itemName) {
+        for (const query of queryData.queries ?? []) {
+            const key = query.queryKey
+
+            const isDescription =
+                Array.isArray(key) &&
+                key[0] === 'market' &&
+                key[1] === 'description' &&
+                key[2] === appId &&
+                key[3] === itemName
+
+            if (isDescription) {
+                return query.state?.data ?? null
+            }
+        }
+
+        return null
+    }
+
+    function extractMarketOrderBook(queryData) {
+        for (const query of queryData.queries ?? []) {
+            const key = query.queryKey
+
+            const isOrderBook = Array.isArray(key) && key[0] === 'market' && key[1] === 'orderbook'
+
+            if (isOrderBook) {
+                return {
+                    appId: key[2],
+                    itemName: key[3],
+                    currency: query.state?.data?.eCurrency,
+                    totalBuyOrders: query.state?.data?.cBuyOrders,
+                    totalSellOrders: query.state?.data?.cSellOrders,
+                    maxBuyOrder: query.state?.data?.amtMaxBuyOrder,
+                    minSellOrder: query.state?.data?.amtMinSellOrder,
+                    buyOrders: query.state?.data?.rgCompactBuyOrders ?? [],
+                    sellOrders: query.state?.data?.rgCompactSellOrders ?? []
+                }
+            }
+        }
+
+        return {}
+    }
+
+    function parseCompactOrders(compactOrders) {
+        const result = []
+
+        for (let i = 0; i < compactOrders.length; i += 2) {
+            result.push({
+                priceRaw: compactOrders[i],
+                price: compactOrders[i] / 100,
+                quantity: compactOrders[i + 1]
+            })
+        }
+
+        return result
+    }
 
     String.prototype.extract = function (t, r) {
         let s = String(this)
@@ -365,5 +488,4 @@
             return '%' + c.charCodeAt(0).toString(16)
         })
     }
-
 })()
