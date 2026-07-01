@@ -164,6 +164,13 @@
         }
         sessionId = parseSessionIdFromHtml(marketHtml)
 
+        try {
+            const marketQueryData = extractSteamQueryData(marketHtml)
+            ;[prefix, suffix] = resolveCurrencyPrefixSuffix(marketQueryData, g_rgWalletInfo)
+        } catch {
+            ;[prefix, suffix] = resolveCurrencyPrefixSuffix(null, g_rgWalletInfo)
+        }
+
         for (const [i, order] of ordersArray.entries()) {
             const orderId = order.id.substring(11)
             const orderObj = myBuyOrders.find((o) => o.buy_orderid === orderId)
@@ -181,11 +188,6 @@
                 console.log('%c ■  single scan end  ■ ', 'background: #000000; color: #FFD700')
                 document.getElementsByClassName('market_tab_well_tabs')[0].style.pointerEvents = ''
                 return
-            }
-
-            if (prefix + suffix == '') {
-                prefix = sourceCode.extract(`strFormatPrefix = "`, `"`)
-                suffix = sourceCode.extract(`strFormatSuffix = "`, `"`)
             }
 
             const queryData = extractSteamQueryData(sourceCode)
