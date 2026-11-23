@@ -40,7 +40,7 @@ chrome.storage.local.get(
         result.scanTableBadSORS.forEach((e, i) => {
             // e[appId, hashName, tdOrder, tdOrderBEP, tdMarket, tdMarketWithFee]
             const profit = pref + (e[4] - e[2]).toFixed(2) + suff
-            const profitPercent = 100 - (e[2] / e[4]) * 100
+            const profitPercent = (100 - (e[2] / e[4]) * 100).toFixed(2)
 
             document.getElementById('badOrd').innerHTML += `
             <tr>

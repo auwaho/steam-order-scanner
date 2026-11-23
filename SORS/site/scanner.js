@@ -128,6 +128,20 @@
 
     /* MAIN SCAN FUNCTION */
     async function startScan() {
+        try {
+            await scanOrders()
+        } catch (error) {
+            chrome.storage.local.set({ scanErrorSORS: true })
+            console.error('Steam Order Scanner: scan failed', error)
+            alert(`Scan stopped: ${error.message}\nReload the market page and try again.`)
+        } finally {
+            chrome.storage.local.set({ scanButtonSORS: 'start' })
+            const marketTabs = document.getElementsByClassName('market_tab_well_tabs')[0]
+            if (marketTabs) marketTabs.style.pointerEvents = ''
+        }
+    }
+
+    async function scanOrders() {
         chrome.storage.local.set({ scanProgressSORS: 0 })
 
         console.log('%c ▼ single scan start ▼ ', 'background: #000000; color: #FFD700')
@@ -201,7 +215,11 @@
             // const marketPriceHistory = marketPriceHistoryList.find((item) => item.itemName === hashName).prices
 
             // Extract buy and sell orders from the order book
-            const marketOrderBook = extractMarketOrderBook(queryData)
+            const marketOrderBook = await extractMarketOrderBook(queryData, appId, hashName)
+            if (isScanStopped) return
+            if (Number(marketOrderBook.currency) !== Number(g_rgWalletInfo.wallet_currency)) {
+                throw new Error(`Steam order book currency does not match your wallet for ${hashName}`)
+            }
 
             // Extract buy and sell orders from the order book; each element includes: [ priceRaw, price, quantity ]
             const marketBuyOrders = parseCompactOrders(marketOrderBook.buyOrders)
@@ -318,20 +336,24 @@
     }
 
     function extractSteamQueryData(pageSource) {
-        const match = pageSource.match(/window\.SSR\.renderContext=JSON\.parse\("([\s\S]*?)"\);/)
-
+        const match = pageSource.match(
+            /<script\b[^>]*\sid\s*=\s*(["'])valve-ssr-data\1[^>]*>([\s\S]*?)<\/script\s*>/i
+        )
         if (!match) {
-            throw new Error('window.SSR.renderContext not found')
+            throw new Error('Steam SSR data not found (valve-ssr-data)')
         }
 
-        const renderContextString = JSON.parse(`"${match[1]}"`)
-        const renderContext = JSON.parse(renderContextString)
-
-        if (!renderContext.queryData) {
-            throw new Error('queryData not found')
+        const renderContext = JSON.parse(match[2]).renderContext
+        if (renderContext?.queryData == null) {
+            throw new Error('Steam SSR queryData not found')
         }
 
-        return JSON.parse(renderContext.queryData)
+        const queryData = JSON.parse(renderContext.queryData)
+        if (!Array.isArray(queryData?.queries)) {
+            throw new Error('Steam SSR queryData.queries is not an array')
+        }
+
+        return queryData
     }
 
     function extractMarketPriceHistoryList(queryData) {
@@ -373,28 +395,49 @@
         return null
     }
 
-    function extractMarketOrderBook(queryData) {
+    async function extractMarketOrderBook(queryData, appId, itemName) {
+        let data
         for (const query of queryData.queries ?? []) {
             const key = query.queryKey
 
-            const isOrderBook = Array.isArray(key) && key[0] === 'market' && key[1] === 'orderbook'
+            const isOrderBook =
+                Array.isArray(key) &&
+                key[0] === 'market' &&
+                key[1] === 'orderbook' &&
+                key[2] === appId &&
+                key[3] === itemName
 
             if (isOrderBook) {
-                return {
-                    appId: key[2],
-                    itemName: key[3],
-                    currency: query.state?.data?.eCurrency,
-                    totalBuyOrders: query.state?.data?.cBuyOrders,
-                    totalSellOrders: query.state?.data?.cSellOrders,
-                    maxBuyOrder: query.state?.data?.amtMaxBuyOrder,
-                    minSellOrder: query.state?.data?.amtMinSellOrder,
-                    buyOrders: query.state?.data?.rgCompactBuyOrders ?? [],
-                    sellOrders: query.state?.data?.rgCompactSellOrders ?? []
-                }
+                data = query.state?.data
+                break
             }
         }
 
-        return {}
+        // Grouped pages may contain only another variant's book.
+        if (!data) {
+            const url = new URL('https://steamcommunity.com/market/orderbook')
+            url.searchParams.set('q', 'Load')
+            url.searchParams.set('qp', JSON.stringify([appId, itemName]))
+            const response = JSON.parse(
+                await fetchWithRetry(url.href, 5, { headers: { 'x-valve-request-type': 'queryAction' } })
+            )
+            if (!response?.data?.success || !response.data.data) {
+                throw new Error(`Steam order book could not be loaded for ${itemName}`)
+            }
+            data = response.data.data
+        }
+
+        return {
+            appId,
+            itemName,
+            currency: data?.eCurrency,
+            totalBuyOrders: data?.cBuyOrders,
+            totalSellOrders: data?.cSellOrders,
+            maxBuyOrder: data?.amtMaxBuyOrder,
+            minSellOrder: data?.amtMinSellOrder,
+            buyOrders: data?.rgCompactBuyOrders ?? [],
+            sellOrders: data?.rgCompactSellOrders ?? []
+        }
     }
 
     function parseCompactOrders(compactOrders) {
@@ -434,9 +477,9 @@
         return Math.floor(Math.random() * (max - min + 1) + min)
     }
 
-    function fetchUrl(url) {
+    function fetchUrl(url, options) {
         return new Promise(function (resolve, reject) {
-            fetch(url)
+            fetch(url, options)
                 .then((response) => {
                     if (response.ok) {
                         chrome.storage.local.set({ scanErrorSORS: false })
@@ -452,19 +495,19 @@
         })
     }
 
-    async function fetchWithRetry(url, attempts = 5) {
-        return await fetchUrl(url).catch(async function () {
+    async function fetchWithRetry(url, attempts = 5, options) {
+        return await fetchUrl(url, options).catch(async function () {
             chrome.storage.local.set({ scanErrorSORS: true })
 
             if (attempts == 5) {
                 await wait(5000)
-                return fetchWithRetry(url, attempts - 1)
+                return fetchWithRetry(url, attempts - 1, options)
             } else if (attempts <= 0) {
                 await wait(pauseOnErrors * 60000)
-                return fetchWithRetry(url, 5)
+                return fetchWithRetry(url, 5, options)
             }
             await wait(10000)
-            return fetchWithRetry(url, attempts - 1)
+            return fetchWithRetry(url, attempts - 1, options)
         })
     }
 

@@ -1,7 +1,8 @@
 /*
   Steam currency display helpers (data from Steam global.js g_rgCurrencyData)
 */
-const RG_CURRENCY_DATA = {
+// The popup injects helpers on every scan; var permits reloading in the same tab.
+var RG_CURRENCY_DATA = {
     "USD": {
         "strCode": "USD",
         "eCurrencyCode": 1,
