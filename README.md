@@ -40,12 +40,12 @@ Steam Order Scanner (SORS) is a Chrome extension that helps keep your Steam Comm
 
 #### Extension features
 
--   **Single scan** of your buy orders for profitability (individual listings and commodity items). Marks each order with color: green = profitable, yellow = first in queue, red = unprofitable. Uses your configured thresholds. Adds flagged orders to the scan report at the end.
+-   **Single scan** on the [Buy Orders page](https://steamcommunity.com/market/buyorders) checks the buy orders loaded on the page. Scroll to load more before starting if needed. Green marks profitable orders, red marks unprofitable orders, and a yellow outline marks orders at the highest bid. Flagged orders appear in the scan report.
 -   **Optional auto-cancellation** of risky orders. Controlled by scan options: "Cancel first in queue" and "Cancel if below (±%)".
 -   Display **`market_listing_price_without_fee`** under the price of each lot on the item page.
 -   Ability to **show more buy and sell orders** on item pages (for commodity items: sales). Quantity is configurable in the popup.
--   Show **number of lots purchased** out of the set quantity in each order on the main market page.
--   Show **totals of orders and listings** near headers on the main market page.
+-   Show the **minimum resale price to recover the bid after fees** below each bid on the Buy Orders page.
+-   Show **buy-order totals** on the Buy Orders page and **gross and net listing totals** on the [Active Listings page](https://steamcommunity.com/market/activelistings).
 -   Show **last 24 hours sold quantity** under the median sales graph on item pages.
 -   **Scan report**: view the last full scan report from the extension popup.
 

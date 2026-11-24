@@ -34,3 +34,6 @@ $RECYCLE.BIN/
 
 # Windows shortcuts
 *.lnk
+
+# Local project documentation
+/docs/

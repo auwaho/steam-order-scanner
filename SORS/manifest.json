@@ -20,12 +20,18 @@
     "content_scripts": [
         {
             "matches": [
-                "*://steamcommunity.com/market/",
-                "*://steamcommunity.com/market/#",
-                "*://steamcommunity.com/market"
+                "https://steamcommunity.com/market",
+                "https://steamcommunity.com/market/*"
             ],
-            "js": ["site/market.js"],
-            "run_at": "document_end"
+            "css": ["site/account-market.css"],
+            "js": [
+                "site/steam-currency.js",
+                "site/account-market-data.js",
+                "site/buy-orders.js",
+                "site/active-listings.js",
+                "site/account-market.js"
+            ],
+            "run_at": "document_idle"
         },
         {
             "matches": ["*://steamcommunity.com/market/listings/*/*"],
@@ -35,7 +41,7 @@
     ],
     "web_accessible_resources": [
         {
-            "resources": ["site/steam-market-fees.js", "site/market.page.js", "site/listings.page.js"],
+            "resources": ["site/steam-market-fees.js", "site/listings.page.js"],
             "matches": ["*://steamcommunity.com/*"]
         }
     ]

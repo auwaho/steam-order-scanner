@@ -1,0 +1,78 @@
+#CommunityTemplate span:has(+ [data-sors-buy-enhancement='breakeven']) {
+    font-weight: var(--font-weight-heavy, 700);
+}
+
+#CommunityTemplate [data-sors-buy-enhancement='breakeven'] {
+    display: block;
+    font-weight: var(--font-weight-regular, 400);
+}
+
+/* Keep each price selectable above Steam's link that covers the order row. */
+#CommunityTemplate [data-sors-buy-price] {
+    position: relative;
+    z-index: 2;
+    pointer-events: auto;
+    cursor: text;
+    user-select: text;
+}
+
+#CommunityTemplate .sors-price-tooltip {
+    position: fixed;
+    inset: auto;
+    margin: 0;
+    border: 0;
+    border-radius: 2px;
+    box-sizing: border-box;
+    max-width: min(300px, calc(100vw - 16px));
+    padding: 5px 8px;
+    color: #17181c;
+    text-shadow: 1px 1px 2px #ffffff4d;
+    background: radial-gradient(62.67% 62.67% at 62.67% 100%, #cfd1d3 0%, #b3b8bc 100%);
+    box-shadow: 1px 1px 8px #0005, 2px 2px 16px 1px #0005;
+    font: 13px 'Motiva Sans', 'Motiva Sans fallback', Arial, Helvetica, sans-serif;
+    white-space: normal;
+    pointer-events: none;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    #CommunityTemplate .sors-price-tooltip:popover-open {
+        animation: sors-price-tooltip-in 250ms ease;
+    }
+}
+
+@media (prefers-contrast: more) {
+    #CommunityTemplate .sors-price-tooltip {
+        color: white;
+        background: black;
+        border: 1px solid white;
+        text-shadow: none;
+    }
+}
+
+@keyframes sors-price-tooltip-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+#CommunityTemplate [data-sors-scan-result]::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    pointer-events: none;
+    border-radius: inherit;
+}
+
+#CommunityTemplate [data-sors-scan-result='profitable']::after {
+    background: rgba(42, 174, 79, 0.18);
+    box-shadow: inset 0 0 0 2px #55a867;
+}
+
+#CommunityTemplate [data-sors-scan-result='unprofitable']::after {
+    background: rgba(211, 55, 55, 0.20);
+    box-shadow: inset 0 0 0 2px #cc6262;
+}
+
+#CommunityTemplate [data-sors-first-in-queue]::after {
+    box-shadow: inset 0 0 0 2px #ffd700;
+}

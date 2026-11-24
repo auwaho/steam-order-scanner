@@ -33,7 +33,7 @@ chrome.storage.local.get(
         'showMoreOrdersQtySORS'
     ],
     function (result) {
-        scanButton.innerText = result.scanButtonSORS
+        showScanState(result.scanButtonSORS)
         cancelHighOrders.checked = result.cancelHighOrdersSORS
         cancelHighPercent.value = result.cancelHighPercentSORS
         cancelFirstOrders.checked = result.cancelFirstOrdersSORS
@@ -43,46 +43,24 @@ chrome.storage.local.get(
         showMoreOrders.checked = result.showMoreOrdersSORS
         showMoreOrdersQty.value = result.showMoreOrdersQtySORS
 
-        scanButton.dataset.active = result.scanButtonSORS == 'stop'
-
-        // turn off button everywhere except steam market page
-        chrome.tabs.query(
-            {
-                active: true,
-                lastFocusedWindow: true
-            },
-            function (tabs) {
-                if (
-                    tabs[0].url == 'https://steamcommunity.com/market/' ||
-                    tabs[0].url == 'https://steamcommunity.com/market'
-                ) {
-                    scanButton.disabled = false
-                }
-            }
-        )
     }
 )
+
+function isBuyOrdersPage(url) {
+    return /^https:\/\/steamcommunity\.com\/market\/buyorders\/?(?:[?#]|$)/.test(url)
+}
+
+async function showScanState(state) {
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true })
+    scanButton.innerText = state
+    scanButton.dataset.active = state === 'stop'
+    scanButton.disabled = state !== 'stop' && !isBuyOrdersPage(tab?.url)
+}
 
 // update button text if ext window open while scan ends
 chrome.storage.onChanged.addListener(function (changes, namespace) {
     if (namespace == 'local' && 'scanButtonSORS' in changes) {
-        if (changes.scanButtonSORS.newValue == 'start') {
-            scanButton.innerText = 'start'
-            scanButton.dataset.active = false
-        } else {
-            chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
-                const currTab = tabs[0]
-                if (currTab) {
-                    chrome.scripting.executeScript({
-                        target: { tabId: currTab.id, allFrames: true },
-                        files: ['site/steam-market-fees.js', 'site/steam-currency.js', 'site/scanner.js']
-                    })
-                }
-            })
-
-            scanButton.innerText = 'stop'
-            scanButton.dataset.active = true
-        }
+        showScanState(changes.scanButtonSORS.newValue)
     }
 })
 
@@ -104,14 +82,22 @@ document.querySelectorAll('input').forEach((el) => {
     })
 })
 
-scanButton.addEventListener('click', () => {
-    chrome.storage.local.get('scanButtonSORS', function (result) {
-        chrome.storage.local.set({
-            scanButtonSORS: result.scanButtonSORS == 'start' ? 'stop' : 'start'
-        })
-    })
+scanButton.addEventListener('click', async () => {
     scanButton.disabled = true
-    setTimeout(() => {
-        scanButton.disabled = false
-    }, 500)
+    const { scanButtonSORS } = await chrome.storage.local.get('scanButtonSORS')
+    if (scanButtonSORS === 'stop') {
+        await chrome.storage.local.set({ scanButtonSORS: 'start' })
+        return
+    }
+
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true })
+    if (!isBuyOrdersPage(tab?.url)) return
+
+    try {
+        await chrome.storage.local.set({ scanButtonSORS: 'stop' })
+        await chrome.scripting.executeScript({ target: { tabId: tab.id }, files: ['site/scanner.js'] })
+    } catch (error) {
+        console.error('Steam Order Scanner: could not start scan', error)
+        await chrome.storage.local.set({ scanButtonSORS: 'start', scanErrorSORS: true })
+    }
 })
