@@ -1,4 +1,4 @@
-const SORSAccountMarket = (() => {
+var SORSAccountMarketData = (() => {
     const actionPath = '/market/actions'
     const fees = new Map()
     let walletRequest
@@ -13,49 +13,64 @@ const SORSAccountMarket = (() => {
             cache: 'no-store',
             signal
         })
-        if (!response.ok) throw new Error(`Steam request failed (${response.status})`)
+        if (!response.ok) {
+            throw Object.assign(new Error(`Steam request failed (${response.status}): ${action}`), { status: response.status })
+        }
         return (await response.json()).data
     }
 
     async function getBuyOrders(signal) {
-        const orders = new Map()
-        let total
-
-        // Match the offsets used by Steam's infinite list.
-        for (let start = 0, count = 50; ; start += count, count = 25) {
-            const page = await queryAction(actionPath, 'QueryMyBuyOrders', [start, count, true], signal)
-            if (page?.eResult !== 1 || !Array.isArray(page.rgBuyOrders)) {
-                throw new Error('Steam did not return your buy orders. Make sure you are signed in.')
-            }
-
-            total ??= page.cTotalBuyOrders
-            if (!Number.isSafeInteger(total) || total < 0 || total !== page.cTotalBuyOrders) {
-                throw new Error('Steam buy order count changed while loading.')
-            }
-
-            for (const { order, description } of page.rgBuyOrders) {
-                const quantity = Number(order?.quantity)
-                const remaining = Number(order?.quantity_remaining)
-                if (
-                    typeof order?.buy_orderid !== 'string' || !/^\d+$/.test(order.buy_orderid) ||
-                    orders.has(order.buy_orderid) || !Number.isSafeInteger(order.appid) || order.appid <= 0 ||
-                    typeof order.hash_name !== 'string' || !order.hash_name ||
-                    !Number.isSafeInteger(order.price) || order.price <= 0 ||
-                    !Number.isSafeInteger(order.wallet_currency) || order.wallet_currency <= 0 ||
-                    !Number.isSafeInteger(quantity) || !Number.isSafeInteger(remaining) || remaining < 1 || remaining > quantity
-                ) {
-                    throw new Error('Steam returned incomplete or duplicate buy orders.')
-                }
-                orders.set(order.buy_orderid, { ...order, description })
-            }
-
-            if (orders.size === total || !page.bMore || !page.rgBuyOrders.length || orders.size > total) break
+        const response = await fetch('/market/mylistings/?norender=1', {
+            redirect: 'error',
+            cache: 'no-store',
+            signal
+        })
+        if (!response.ok) {
+            throw Object.assign(new Error(`Steam request failed (${response.status}): buy orders`), { status: response.status })
+        }
+        const data = await response.json()
+        if ((data?.success !== true && data?.success !== 1) || !Array.isArray(data.buy_orders)) {
+            throw new Error('Steam did not return your buy orders. Make sure you are signed in.')
         }
 
-        if (orders.size !== total) throw new Error('Steam returned only part of your buy orders.')
+        const orders = new Map()
+        for (const source of data.buy_orders) {
+            const order = {
+                ...source,
+                appid: Number(source?.appid),
+                price: Number(source?.price),
+                wallet_currency: Number(source?.wallet_currency),
+                quantity: Number(source?.quantity),
+                quantity_remaining: Number(source?.quantity_remaining)
+            }
+            if (
+                typeof order.buy_orderid !== 'string' || !/^\d+$/.test(order.buy_orderid) ||
+                orders.has(order.buy_orderid) || !Number.isSafeInteger(order.appid) || order.appid <= 0 ||
+                typeof order.hash_name !== 'string' || !order.hash_name ||
+                !Number.isSafeInteger(order.price) || order.price <= 0 ||
+                !Number.isSafeInteger(order.wallet_currency) || order.wallet_currency <= 0 ||
+                !Number.isSafeInteger(order.quantity) || !Number.isSafeInteger(order.quantity_remaining) ||
+                order.quantity_remaining < 1 || order.quantity_remaining > order.quantity
+            ) {
+                throw new Error('Steam returned incomplete or duplicate buy orders.')
+            }
+            if (source.description && typeof source.description === 'object' && !Array.isArray(source.description)) {
+                order.description = { ...source.description }
+                if ('commodity' in source.description) {
+                    order.description.commodity = source.description.commodity === true ||
+                        source.description.commodity === 1 || source.description.commodity === '1'
+                }
+            } else {
+                delete order.description
+            }
+            orders.set(order.buy_orderid, order)
+        }
+
         const result = [...orders.values()]
-        const wallet = result.length ? await getMarketWallet() : null
-        return { orders: result, total, wallet }
+        signal?.throwIfAborted()
+        const wallet = result.length ? await waitForRead(getMarketWallet(), signal) : null
+        signal?.throwIfAborted()
+        return { orders: result, total: result.length, wallet }
     }
 
     function getMarketWallet() {
@@ -71,13 +86,27 @@ const SORSAccountMarket = (() => {
                 }
                 return { wallet_currency: currency, floor, increment }
             })
-            .catch(() => {
+            .catch(() => null)
+            .finally(() => {
+                // Coalesce concurrent readers, then refresh the account context on the next read.
                 walletRequest = undefined
-                return null
             })
     }
 
-    function getFeeCalculator(appId, wallet) {
+    function waitForRead(request, signal) {
+        if (!signal) return request
+        return new Promise((resolve, reject) => {
+            function abort() {
+                reject(signal.reason)
+            }
+            if (signal.aborted) abort()
+            else signal.addEventListener('abort', abort, { once: true })
+            request.then(resolve, reject).finally(() => signal.removeEventListener('abort', abort))
+        })
+    }
+
+    function getFeeCalculator(appId, wallet, signal) {
+        signal?.throwIfAborted()
         const { wallet_currency: currency, floor, increment } = wallet
         const key = `${appId}:${currency}:${floor}:${increment}`
         if (!fees.has(key)) {
@@ -134,38 +163,28 @@ const SORSAccountMarket = (() => {
                 })
             fees.set(key, request)
         }
-        return fees.get(key)
+        return waitForRead(fees.get(key), signal)
     }
 
-    async function cancelBuyOrder(id) {
+    async function cancelBuyOrder(id, signal) {
+        signal?.throwIfAborted()
         const response = await fetch(actionPath, {
             method: 'POST',
             redirect: 'error',
+            signal,
             headers: {
                 'x-valve-request-type': 'mutationAction',
                 'Content-Type': 'application/json; charset=utf-8'
             },
             body: JSON.stringify({ m: 'CancelBuyOrder', mp: [id] })
         })
-        if (!response.ok || (await response.json()).data !== 1) {
-            throw new Error('Steam could not cancel the buy order.')
+        if (!response.ok) throw new Error(`Steam could not cancel the buy order (HTTP ${response.status}).`)
+        const { data } = await response.json()
+        if (data !== 1 && data !== '1') {
+            const code = Number.isInteger(data) ? ` (result ${data})` : ''
+            throw new Error(`Steam could not cancel the buy order${code}.`)
         }
     }
 
-    function mountSummary(id, text) {
-        const nav = document.querySelector('#CommunityTemplate a[href="buyorders"]')?.parentElement
-        if (!nav?.querySelector('a[href="activelistings"]')) return
-
-        let summary = document.getElementById(id)
-        if (!summary) {
-            summary = document.createElement('div')
-            summary.id = id
-            summary.setAttribute('role', 'status')
-            summary.style.cssText = 'margin: 8px 0 12px; font-size: 14px;'
-            nav.after(summary)
-        }
-        if (summary.textContent !== text) summary.textContent = text
-    }
-
-    return { queryAction, getBuyOrders, getFeeCalculator, cancelBuyOrder, mountSummary }
+    return { queryAction, getBuyOrders, getFeeCalculator, cancelBuyOrder }
 })()

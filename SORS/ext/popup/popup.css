@@ -45,43 +45,11 @@ a:hover {
 }
 
 .header {
-    display: flex;
-    flex-direction: row;
-    justify-content: space-between;
-    align-items: center;
     margin-bottom: 15px;
 }
 
 .header__text {
     margin: 0;
-}
-
-.header__button {
-    width: 78px;
-    height: 31px;
-    color: white;
-    background-color: #222222;
-    border: 1px solid gold;
-    border-radius: 4px;
-    font-size: 11px;
-    text-transform: uppercase;
-    transition: all 0.5s;
-}
-
-.header__button:disabled {
-    border: 1px solid #3a3a3a;
-    color: #5d5d5d;
-}
-
-.header__button::before {
-    content: '■';
-    margin-right: 5px;
-    font-family: system-ui;
-    transition: color 0.5s;
-}
-
-.header__button[data-active='false']:before {
-    content: '▶';
 }
 
 .settings {

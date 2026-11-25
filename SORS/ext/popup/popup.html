@@ -13,11 +13,8 @@
 
         <div class="header">
             <p class="header__text">
-                Scan on the <a href="https://steamcommunity.com/market/buyorders" target="_blank">buy orders page</a>
-                <br />
-                View <a href="../report/report.html" target="_blank" id="scanReport">last full scan report</a>
+                <a href="https://steamcommunity.com/market/buyorders" target="_blank">Open scanner on Steam</a>
             </p>
-            <button class="header__button" id="scanButton" disabled>start</button>
         </div>
 
         <div class="settings">
@@ -28,11 +25,12 @@
                         class="title__help"
                         title=">
     Scan options:
-        • Cancel first in queue — mark and cancel (if enabled) when your order is first in the queue.
+        • Auto-cancellation applies to all active buy orders when enabled.
+        • Cancel first in queue — mark and optionally cancel an order whose price matches Steam's highest bid. Queue order within the same price is unavailable.
         • Cancel if below (±%) — mark and cancel (if enabled) when profit percent is below the threshold.
-        • Pause on errors (min) — wait this many minutes after few errors in a row.
+        • Pause on errors (min) — wait after six failed item page requests before repeating the cycle.
         • Per-order delay (ms) — base delay between orders.
-        • Random delay (+ms) — random extra delay added to the base.
+        • Random delay (+%) — maximum extra delay as a percentage of the base.
     _"
                     >
                         ?
@@ -67,7 +65,7 @@
                 </div>
 
                 <div class="setting">
-                    <label>Random delay (+ms)</label>
+                    <label>Random delay (+%)</label>
                     <input type="number" id="delayRandom" min="0" max="9999" placeholder="50" />
                 </div>
             </div>
@@ -79,12 +77,13 @@
                         class="title__help"
                         title=">
     Market options:
-        • Show more orders — expands buy/sell tables on item pages when possible.
+        • Show more orders — expands the price tables for the selected item. For items with variants, select an exact variant and open the buy-order table.
         
     Also includes by default:
         • Show lot prices without fee on item pages.
         • Show sold in last 24h on the price graph.
-        • Show totals on the Buy Orders and Active Listings pages.
+        • Show buy-order totals and scan progress in the Steam Order Scanner panel.
+        • Show totals on the Active Listings page.
         • Show break-even prices on the Buy Orders page.
     _"
                     >

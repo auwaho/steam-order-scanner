@@ -9,7 +9,7 @@
         "48": "ico/48.png",
         "128": "ico/128.png"
     },
-    "permissions": ["storage", "activeTab", "tabs", "scripting"],
+    "permissions": ["storage"],
     "host_permissions": ["*://steamcommunity.com/*"],
     "action": {
         "default_popup": "ext/popup/popup.html"
@@ -23,25 +23,35 @@
                 "https://steamcommunity.com/market",
                 "https://steamcommunity.com/market/*"
             ],
-            "css": ["site/account-market.css"],
+            "css": ["site/listing/listing-order-depth.css"],
             "js": [
-                "site/steam-currency.js",
-                "site/account-market-data.js",
-                "site/buy-orders.js",
-                "site/active-listings.js",
-                "site/account-market.js"
+                "site/market/steam-currency.js",
+                "site/listing/listings.js",
+                "site/listing/listing-order-depth.js"
             ],
-            "run_at": "document_idle"
+            "run_at": "document_start"
         },
         {
-            "matches": ["*://steamcommunity.com/market/listings/*/*"],
-            "js": ["site/listings.js"],
-            "run_at": "document_end"
+            "matches": [
+                "https://steamcommunity.com/market",
+                "https://steamcommunity.com/market/*"
+            ],
+            "css": ["site/market/account-market.css", "site/scanner/panel.css"],
+            "js": [
+                "site/market/account-market-data.js",
+                "site/scanner/panel.js",
+                "site/market/buy-orders.js",
+                "site/market/active-listings.js",
+                "site/market/account-market.js",
+                "site/scanner/item-prices.js",
+                "site/scanner/runner.js"
+            ],
+            "run_at": "document_idle"
         }
     ],
     "web_accessible_resources": [
         {
-            "resources": ["site/steam-market-fees.js", "site/listings.page.js"],
+            "resources": ["site/market/steam-market-fees.js", "site/listing/listings.page.js"],
             "matches": ["*://steamcommunity.com/*"]
         }
     ]

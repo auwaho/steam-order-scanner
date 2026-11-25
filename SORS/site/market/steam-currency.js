@@ -1,7 +1,7 @@
 /*
   Steam currency display helpers (data from Steam global.js g_rgCurrencyData)
 */
-// The popup injects helpers on every scan; var permits reloading in the same tab.
+// Account and item-page content scripts share these helpers in the same tab.
 var RG_CURRENCY_DATA = {
     "USD": {
         "strCode": "USD",
@@ -518,37 +518,13 @@ function getCurrencyPrefixSuffix(currencyId) {
     return ['', separator + currencyData.strSymbol]
 }
 
-function parseCurrencyAffixFromFormattedBalance(formattedBalance) {
-    if (!formattedBalance) return null
-
-    const match = String(formattedBalance)
-        .trim()
-        .match(/^([^\d]*?)([\d][\d\s.,\u00a0]*)([^\d]*)$/)
-    if (!match) return null
-
-    return [match[1], match[3]]
-}
-
-function extractWalletDetails(queryData) {
-    for (const query of queryData.queries ?? []) {
-        const key = query.queryKey
-
-        if (Array.isArray(key) && key[0] === 'CurrentUserWalletDetails') {
-            return query.state?.data ?? null
-        }
-    }
-
-    return null
-}
-
-function resolveCurrencyPrefixSuffix(queryData, walletInfo) {
-    const walletDetails = queryData ? extractWalletDetails(queryData) : null
-    const fromFormatted = parseCurrencyAffixFromFormattedBalance(walletDetails?.formatted_balance)
-    if (fromFormatted) return fromFormatted
-
-    if (walletInfo?.wallet_currency != null) {
-        return getCurrencyPrefixSuffix(walletInfo.wallet_currency)
-    }
-
-    return ['', '']
+function formatSteamMoney(amount, currencyId) {
+    const currency = Number(currencyId)
+    const [prefix, suffix] = getCurrencyPrefixSuffix(currency)
+    const details = RG_CURRENCY_DATA[getCurrencyCodeById(currency)]
+    const decimals = details?.bWholeUnitsOnly && amount % 100 === 0 ? 0 : 2
+    const [whole, fraction] = (amount / 100).toFixed(decimals).split('.')
+    const grouped = whole.replace(/\B(?=(\d{3})+(?!\d))/g, () => details?.strThousandsSeparator ?? ',')
+    const number = fraction === undefined ? grouped : grouped + (details?.strDecimalSymbol ?? '.') + fraction
+    return `${prefix}${number}${suffix}`
 }

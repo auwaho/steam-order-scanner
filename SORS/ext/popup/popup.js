@@ -19,85 +19,38 @@
   Home: https://github.com/auwaho/steam-order-scanner
 */
 
-// load extension settings
-chrome.storage.local.get(
-    [
-        'scanButtonSORS',
-        'cancelHighOrdersSORS',
-        'cancelHighPercentSORS',
-        'cancelFirstOrdersSORS',
-        'pauseOnErrorsSORS',
-        'delayPerOrderSORS',
-        'delayRandomSORS',
-        'showMoreOrdersSORS',
-        'showMoreOrdersQtySORS'
-    ],
-    function (result) {
-        showScanState(result.scanButtonSORS)
-        cancelHighOrders.checked = result.cancelHighOrdersSORS
-        cancelHighPercent.value = result.cancelHighPercentSORS
-        cancelFirstOrders.checked = result.cancelFirstOrdersSORS
-        pauseOnErrors.value = result.pauseOnErrorsSORS
-        delayPerOrder.value = result.delayPerOrderSORS
-        delayRandom.value = result.delayRandomSORS
-        showMoreOrders.checked = result.showMoreOrdersSORS
-        showMoreOrdersQty.value = result.showMoreOrdersQtySORS
+const inputs = [...document.querySelectorAll('.settings input')]
 
-    }
-)
-
-function isBuyOrdersPage(url) {
-    return /^https:\/\/steamcommunity\.com\/market\/buyorders\/?(?:[?#]|$)/.test(url)
+function showSetting(input, value) {
+    if (value === undefined) return
+    if (input.type === 'checkbox') input.checked = value
+    else input.value = value
 }
 
-async function showScanState(state) {
-    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true })
-    scanButton.innerText = state
-    scanButton.dataset.active = state === 'stop'
-    scanButton.disabled = state !== 'stop' && !isBuyOrdersPage(tab?.url)
-}
+void chrome.storage.local.get(inputs.map(({ id }) => `${id}SORS`)).then((stored) => {
+    for (const input of inputs) showSetting(input, stored[`${input.id}SORS`])
+})
 
-// update button text if ext window open while scan ends
-chrome.storage.onChanged.addListener(function (changes, namespace) {
-    if (namespace == 'local' && 'scanButtonSORS' in changes) {
-        showScanState(changes.scanButtonSORS.newValue)
+chrome.storage.onChanged.addListener((changes, namespace) => {
+    if (namespace !== 'local') return
+    for (const input of inputs) {
+        const change = changes[`${input.id}SORS`]
+        if (change) showSetting(input, change.newValue)
     }
 })
 
-// update settings onchange
-document.querySelectorAll('input').forEach((el) => {
-    el.addEventListener('change', () => {
-        if (el.type == 'number') {
-            let value = parseFloat(el.value) || parseFloat(el.placeholder)
-            if (value > parseFloat(el.max)) value = parseFloat(el.max)
-            if (value < parseFloat(el.min)) value = parseFloat(el.min)
-
-            el.value = value
-            chrome.storage.local.set({ [`${el.id}SORS`]: value })
+for (const input of inputs) {
+    input.addEventListener('change', () => {
+        const key = `${input.id}SORS`
+        if (input.type === 'checkbox') {
+            void chrome.storage.local.set({ [key]: input.checked })
+            return
         }
 
-        if (el.type == 'checkbox') {
-            chrome.storage.local.set({ [`${el.id}SORS`]: el.checked })
-        }
+        const parsed = Number.parseFloat(input.value)
+        const value = Math.min(Number(input.max), Math.max(Number(input.min),
+            Number.isFinite(parsed) ? parsed : Number(input.placeholder)))
+        input.value = value
+        void chrome.storage.local.set({ [key]: value })
     })
-})
-
-scanButton.addEventListener('click', async () => {
-    scanButton.disabled = true
-    const { scanButtonSORS } = await chrome.storage.local.get('scanButtonSORS')
-    if (scanButtonSORS === 'stop') {
-        await chrome.storage.local.set({ scanButtonSORS: 'start' })
-        return
-    }
-
-    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true })
-    if (!isBuyOrdersPage(tab?.url)) return
-
-    try {
-        await chrome.storage.local.set({ scanButtonSORS: 'stop' })
-        await chrome.scripting.executeScript({ target: { tabId: tab.id }, files: ['site/scanner.js'] })
-    } catch (error) {
-        console.error('Steam Order Scanner: could not start scan', error)
-        await chrome.storage.local.set({ scanButtonSORS: 'start', scanErrorSORS: true })
-    }
-})
+}

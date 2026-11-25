@@ -7,8 +7,7 @@ var SORSBuyOrders = (() => {
     const enhancement = 'data-sors-buy-enhancement'
     const breakEvenSelector = `[${enhancement}="breakeven"]`
     const priceTarget = 'data-sors-buy-price'
-    const summaryId = 'sors-buy-order-totals'
-    const rowIds = new WeakMap()
+    const panelId = 'sors-scan-panel'
     let tooltipId = 0
 
     function getColumn(element) {
@@ -63,7 +62,15 @@ var SORSBuyOrders = (() => {
         return original === Number(order.quantity) && purchased === original - Number(order.quantity_remaining)
     }
 
-    function getVisibleOrderRows(orders) {
+    function getOrderRowCells(row) {
+        const cells = new Map([...row.children].map((cell) => [getColumn(cell), cell]))
+        const name = cells.get('nameblock')
+        const bid = cells.get('bid')
+        const quantity = cells.get('quantity')
+        if (name && bid && quantity) return { name, bid, quantity }
+    }
+
+    function getOrderRows(orders) {
         const byItem = new Map()
         for (const order of orders) {
             const key = getOrderTarget(order)
@@ -71,55 +78,28 @@ var SORSBuyOrders = (() => {
             byItem.get(key).push(order)
         }
 
-        const candidates = new Map()
+        const rows = new Map()
         for (const name of document.querySelectorAll('[style*="--grid-column"][style*="nameblock"]')) {
             if (getColumn(name) !== 'nameblock') continue
             const row = name.parentElement
             if (!row?.getClientRects().length) continue
-            rowIds.delete(row)
-
-            const cells = new Map([...row.children].map((cell) => [getColumn(cell), cell]))
-            const bid = cells.get('bid')
-            const quantity = cells.get('quantity')
-            const cancel = cells.get('modify')?.querySelector('button:not(:disabled)')
-            if (!bid || !quantity || !cancel) continue
+            const cells = getOrderRowCells(row)
+            if (!cells) continue
+            const { bid, quantity } = cells
 
             const itemOrders = byItem.get(getRowTarget(name)) ?? []
             const price = readBidInCents(bid)
             const matching = itemOrders.filter((order) => {
                 return Number(order.price) === price && matchesQuantity(quantity, order)
             })
-            if (matching.length !== 1) continue
-
-            const id = String(matching[0].buy_orderid)
-            // Two rows can have identical links, bids and quantities. Neither row identifies the order then.
-            candidates.set(id, candidates.has(id) ? null : row)
+            const [order] = matching
+            if (!order || matching.some((candidate) =>
+                candidate.appid !== order.appid || candidate.wallet_currency !== order.wallet_currency ||
+                candidate.price !== order.price)) continue
+            // Price annotations are shared when every candidate has the same fee and currency inputs.
+            rows.set(row, order)
         }
-        const rows = new Map([...candidates].filter(([, row]) => row !== null))
-        for (const [id, row] of rows) rowIds.set(row, id)
         return rows
-    }
-
-    function markCanceled(id, row) {
-        if (!row?.isConnected || rowIds.get(row) !== String(id)) return
-
-        const modify = [...row.children].find((cell) => getColumn(cell) === 'modify')
-        const cancel = modify?.querySelector('button:not(:disabled)')
-        if (!cancel) return
-
-        cancel.disabled = true
-        cancel.title = 'Canceled by Steam Order Scanner'
-        row.style.filter = 'brightness(50%)'
-    }
-
-    function formatMoney(amount, currency) {
-        const [prefix, suffix] = getCurrencyPrefixSuffix(currency)
-        const details = RG_CURRENCY_DATA[getCurrencyCodeById(Number(currency))]
-        const decimals = details?.bWholeUnitsOnly && amount % 100 === 0 ? 0 : 2
-        const [whole, fraction] = (amount / 100).toFixed(decimals).split('.')
-        const grouped = whole.replace(/\B(?=(\d{3})+(?!\d))/g, () => details?.strThousandsSeparator ?? ',')
-        const number = fraction === undefined ? grouped : grouped + (details?.strDecimalSymbol ?? '.') + fraction
-        return `${prefix}${number}${suffix}`
     }
 
     function setBreakEvenPrice(nativePrice, text) {
@@ -214,19 +194,12 @@ var SORSBuyOrders = (() => {
         }
     }
 
-    function render({ orders, total, wallet }, getFees, syncPriceTooltips) {
+    function render({ orders, wallet }, getFees, syncPriceTooltips) {
         const retained = new Set()
         const priceTargets = new Map()
-        const rows = getVisibleOrderRows(orders)
-        const totals = new Map()
-        for (const order of orders) {
+        for (const [row, order] of getOrderRows(orders)) {
             const currency = Number(order.wallet_currency)
             const price = Number(order.price)
-            const remaining = Number(order.quantity_remaining)
-            totals.set(currency, (totals.get(currency) ?? 0) + price * remaining)
-
-            const row = rows.get(String(order.buy_orderid))
-            if (!row) continue
             const bid = [...row.children].find((cell) => getColumn(cell) === 'bid')
             const nativePrice = bid && getCellValue(bid)
             if (!nativePrice) continue
@@ -234,15 +207,12 @@ var SORSBuyOrders = (() => {
             if (Number(wallet?.wallet_currency) !== currency) continue
             const breakeven = getFees(order.appid, wallet)?.buyPriceFor(price)
             if (Number.isSafeInteger(breakeven)) {
-                const annotation = setBreakEvenPrice(nativePrice, formatMoney(breakeven, currency))
+                const annotation = setBreakEvenPrice(nativePrice, formatSteamMoney(breakeven, currency))
                 retained.add(annotation)
                 priceTargets.set(annotation.firstElementChild, 'Sell at this price to break even after fees.')
             }
         }
 
-        const amounts = [...totals].map(([currency, amount]) => formatMoney(amount, currency)).join(' + ')
-        const text = `Buy orders: ${total ?? orders.length}${amounts ? ` · Total committed: ${amounts}` : ''}`
-        SORSAccountMarket.mountSummary(summaryId, text)
         document.querySelectorAll(breakEvenSelector).forEach((element) => {
             if (!retained.has(element)) element.remove()
         })
@@ -257,6 +227,7 @@ var SORSBuyOrders = (() => {
         let refetch = false
         let frame
         const fees = new Map()
+        const failedFees = new Set()
         const priceTooltips = new Map()
 
         function syncPriceTooltips(targets) {
@@ -288,11 +259,12 @@ var SORSBuyOrders = (() => {
             const key = `${appId}/${wallet.wallet_currency}/${wallet.floor}/${wallet.increment}`
             if (!fees.has(key)) {
                 fees.set(key, null)
-                SORSAccountMarket.getFeeCalculator(appId, wallet).then((calculator) => {
+                SORSAccountMarketData.getFeeCalculator(appId, wallet).then((calculator) => {
+                    failedFees.delete(key)
                     fees.set(key, calculator)
                     scheduleRender()
                 }).catch(() => {
-                    // The quantity and summary can display without Steam's fee settings.
+                    failedFees.add(key)
                 })
             }
             return fees.get(key)
@@ -305,14 +277,20 @@ var SORSBuyOrders = (() => {
                 return
             }
             pending = true
+            for (const key of failedFees) fees.delete(key)
+            failedFees.clear()
+            panel.setSummary(undefined)
             try {
-                data = await SORSAccountMarket.getBuyOrders(controller.signal)
-                if (active) scheduleRender()
+                data = await SORSAccountMarketData.getBuyOrders(controller.signal)
+                if (active) {
+                    panel.setSummary(data)
+                    scheduleRender()
+                }
             } catch (error) {
                 if (active) {
                     data = undefined
                     clearRowAnnotations()
-                    SORSAccountMarket.mountSummary(summaryId, 'Buy order totals unavailable')
+                    panel.setSummary(null)
                     console.warn('SORS could not load the buy-order summary', error)
                 }
             } finally {
@@ -324,6 +302,7 @@ var SORSBuyOrders = (() => {
             }
         }
 
+        const panel = SORSScanPanel.mount({ onRefresh: loadOrders })
         const observer = new MutationObserver((records) => {
             if (records.some(({ type, target }) => type === 'attributes' && target.matches('button:disabled') &&
                 target.parentElement && getColumn(target.parentElement) === 'modify')) {
@@ -331,13 +310,12 @@ var SORSBuyOrders = (() => {
             }
             if (records.some(({ type, target, addedNodes, removedNodes }) => {
                 if (type !== 'childList') return false
-                if (target.closest?.(`[${enhancement}], #${summaryId}`)) return false
+                if (target.closest?.(`[${enhancement}], #${panelId}`)) return false
                 return [...addedNodes, ...removedNodes].some((node) =>
-                    node.nodeType === 1 && !node.hasAttribute(enhancement) && node.id !== summaryId)
+                    node.nodeType === 1 && !node.hasAttribute(enhancement) && node.id !== panelId)
             })) scheduleRender()
         })
         observer.observe(document.body, { subtree: true, childList: true, attributes: true, attributeFilter: ['disabled'] })
-        SORSAccountMarket.mountSummary(summaryId, 'Loading buy order totals…')
         loadOrders()
 
         return () => {
@@ -345,10 +323,10 @@ var SORSBuyOrders = (() => {
             controller.abort()
             observer.disconnect()
             if (frame !== undefined) cancelAnimationFrame(frame)
-            document.getElementById(summaryId)?.remove()
+            panel.dispose()
             clearRowAnnotations()
         }
     }
 
-    return { getVisibleOrderRows, markCanceled, refresh }
+    return { refresh }
 })()

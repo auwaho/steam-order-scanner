@@ -36,30 +36,3 @@ function GetTotalWithFees(base_amt, ppct, spct, rgWallet) {
     const nSteamFee = CalculateFee(base_amt, spct, rgWallet)
     return nBase + nPubFee + nSteamFee
 }
-
-function GetItemPriceFromTotal(nTotal, rgWallet) {
-    const ppct = parseFloat(rgWallet.wallet_publisher_fee_percent_default ?? 0.1)
-    const spct = parseFloat(rgWallet.wallet_fee_percent ?? 0.05)
-    const nIncrement = parseInt(rgWallet.wallet_currency_increment ?? 1)
-    const nFloor = parseInt(rgWallet.wallet_market_minimum ?? 1)
-
-    const nInitialGuess = Math.floor(nTotal / (1.0 + ppct + spct))
-    const nMaxBase = nTotal - 2 * nFloor
-
-    let nBase = ToValidMarketPrice(Math.min(nInitialGuess, nMaxBase), rgWallet)
-
-    for (let i = 0; i < 3; i++) {
-        const nCalculated = GetTotalWithFees(nBase, ppct, spct, rgWallet)
-        if (nCalculated === nTotal) {
-            return nBase
-        }
-        if (nCalculated < nTotal) {
-            nBase += nIncrement
-        } else {
-            nBase -= nIncrement
-            break
-        }
-    }
-
-    return Math.max(nFloor, nBase)
-}

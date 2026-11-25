@@ -1,0 +1,236 @@
+#sors-scan-panel {
+    box-sizing: border-box;
+    margin: 12px 0 24px;
+    border: 1px solid #343b46;
+    border-radius: 3px;
+    background: #1c222b;
+    color: #c7d5e0;
+    font: 14px 'Motiva Sans', 'Motiva Sans fallback', Arial, Helvetica, sans-serif;
+}
+
+#sors-scan-panel [hidden] {
+    display: none !important;
+}
+
+#sors-scan-panel .sors-scan-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px 0 8px;
+    cursor: pointer;
+}
+
+#sors-scan-panel .sors-scan-heading {
+    flex: 1 1 200px;
+    min-width: 0;
+    margin: 0;
+    font: inherit;
+}
+
+#sors-scan-panel .sors-scan-heading-text {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 2px 12px;
+    min-width: 0;
+}
+
+#sors-scan-panel .sors-scan-title {
+    color: #e5e7eb;
+    font-size: 16px;
+    font-weight: 500;
+    line-height: 1.4;
+}
+
+#sors-scan-panel .sors-scan-compact-status,
+#sors-scan-panel .sors-scan-muted {
+    color: #9ba9b5;
+}
+
+#sors-scan-panel .sors-scan-controls {
+    display: flex;
+    flex: 0 0 auto;
+    align-items: center;
+    gap: 8px;
+}
+
+#sors-scan-panel button {
+    box-sizing: border-box;
+    margin: 0;
+    border: 0;
+    font: inherit;
+    cursor: pointer;
+}
+
+#sors-scan-panel .sors-scan-button {
+    min-height: 32px;
+    padding: 6px 14px;
+    border-radius: 2px;
+    background: #3d4551;
+    color: #fff;
+    font-size: 13px;
+    line-height: 20px;
+    white-space: nowrap;
+}
+
+#sors-scan-panel .sors-scan-button:hover {
+    background: #4d5969;
+}
+
+#sors-scan-panel .sors-scan-start {
+    background: #48633e;
+}
+
+#sors-scan-panel .sors-scan-start:hover {
+    background: #597b4c;
+}
+
+#sors-scan-panel .sors-scan-toggle {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    min-height: 44px;
+    padding: 6px 10px;
+    border-radius: 2px;
+    background: transparent;
+    color: inherit;
+    text-align: start;
+}
+
+#sors-scan-panel .sors-scan-toggle:hover {
+    background: #242d39;
+}
+
+#sors-scan-panel .sors-scan-chevron {
+    flex: 0 0 auto;
+    box-sizing: border-box;
+    width: 8px;
+    height: 8px;
+    border-right: 2px solid #9fbbce;
+    border-bottom: 2px solid #9fbbce;
+    transform: rotate(-45deg);
+}
+
+#sors-scan-panel .sors-scan-toggle[aria-expanded='true'] .sors-scan-chevron {
+    transform: translateY(-2px) rotate(45deg);
+}
+
+#sors-scan-panel button:focus-visible {
+    outline: 2px solid #9fbbce;
+    outline-offset: 3px;
+}
+
+#sors-scan-panel button:disabled {
+    opacity: 0.5;
+    cursor: default;
+}
+
+#sors-scan-panel .sors-scan-summary {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 8px 16px;
+    padding: 8px 16px 14px;
+    color: #9fbbce;
+    line-height: 1.5;
+}
+
+#sors-scan-panel .sors-scan-refresh {
+    padding: 0;
+    background: transparent;
+    color: #9fbbce;
+    font-size: 12px;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+
+#sors-scan-panel .sors-scan-refresh:hover {
+    color: #dce8f0;
+}
+
+#sors-scan-panel .sors-scan-body {
+    padding: 13px 16px 16px;
+    border-top: 1px solid #343b46;
+}
+
+#sors-scan-panel .sors-scan-progress-line {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    line-height: 1.5;
+}
+
+#sors-scan-panel .sors-scan-count {
+    color: #9fbbce;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+#sors-scan-panel .sors-scan-progress {
+    display: block;
+    width: 100%;
+    height: 5px;
+    margin: 9px 0 10px;
+    border: 0;
+    border-radius: 2px;
+    accent-color: #79a15c;
+    overflow: hidden;
+}
+
+#sors-scan-panel .sors-scan-progress::-webkit-progress-bar {
+    border-radius: 2px;
+    background: #303946;
+}
+
+#sors-scan-panel .sors-scan-progress::-webkit-progress-value {
+    border-radius: 2px;
+    background: #79a15c;
+}
+
+#sors-scan-panel .sors-scan-current {
+    margin-top: 10px;
+    overflow-wrap: anywhere;
+    line-height: 1.5;
+}
+
+#sors-scan-panel .sors-scan-results {
+    margin-top: 8px;
+    color: #9fbbce;
+    line-height: 1.5;
+}
+
+#sors-scan-panel .sors-scan-issues {
+    margin-top: 10px;
+    color: #e4b98c;
+    font-size: 13px;
+    line-height: 1.5;
+    overflow-wrap: anywhere;
+}
+
+#sors-scan-panel .sors-scan-issues ul {
+    margin: 4px 0 0;
+    padding-left: 18px;
+}
+
+#sors-scan-panel .sors-scan-summary-error {
+    color: #e4b98c;
+}
+
+#sors-scan-panel .sors-scan-cancellation-notice {
+    padding: 0 16px 12px;
+    color: #e4b98c;
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+@media (max-width: 600px) {
+    #sors-scan-panel .sors-scan-header {
+        flex-wrap: wrap;
+        gap: 4px 8px;
+    }
+
+    #sors-scan-panel .sors-scan-controls {
+        margin-left: auto;
+    }
+}

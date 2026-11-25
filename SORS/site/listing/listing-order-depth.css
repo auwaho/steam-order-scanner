@@ -1,0 +1,28 @@
+table[data-sors-native-order-depth] {
+    display: none !important;
+}
+
+[data-sors-sales-volume],
+[data-sors-seller-net]::after, [data-sors-break-even] {
+    color: var(--color-text-body-description, #a7b5c4);
+    font-size: 0.9em;
+}
+
+[data-sors-sales-volume] {
+    margin-top: 4px;
+}
+
+[data-sors-seller-net]::after {
+    content: attr(data-sors-seller-net);
+    display: block;
+    text-align: end;
+}
+
+[data-sors-break-even] {
+    display: block;
+}
+
+html[data-sors-legacy-listing] .market_listing_price_without_fee {
+    display: block;
+    color: gray;
+}

@@ -12,7 +12,7 @@
         route = nextRoute
 
         if (route === '/market/buyorders') stopEnhancements = SORSBuyOrders.refresh()
-        if (route === '/market/activelistings') SORSActiveListings.refresh()
+        if (route === '/market/activelistings') stopEnhancements = SORSActiveListings.refresh()
     }
 
     update()
