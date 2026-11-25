@@ -232,12 +232,11 @@
             throw new Error(`Order currency is ${currency}; wallet currency is ${wallet.wallet_currency}.`)
         }
 
-        const itemHref = SORSItemPrices.getListingUrl(order)
-        let quote = await retryPriceRead(() => fetchItemPage(itemHref, signal), { repeat: true })
-        let prices, fees, feeError
+        let quote = await fetchQuote(order, signal, (load) => retryPriceRead(load, { repeat: true }))
+        let fees, feeError
 
         async function readQuote(getFees) {
-            prices = SORSItemPrices.readItemPage(quote.source, order)
+            const { prices } = quote
             if (!prices.saleError && !fees && !feeError) {
                 try {
                     fees = await getFees()
@@ -254,8 +253,8 @@
         for (let pass = 0; pass < 2; pass++) {
             if (pass) {
                 try {
-                    result = await withDeadline(maxQuoteAge, 'The fresh item page timed out.', async (requestSignal) => {
-                        quote = await fetchItemPage(itemHref, requestSignal)
+                    result = await withDeadline(maxQuoteAge, 'The fresh price check timed out.', async (requestSignal) => {
+                        quote = await fetchQuote(order, requestSignal)
                         requestSignal.throwIfAborted()
                         return readQuote(() => accountMarket.getFeeCalculator(appId, wallet, requestSignal))
                     })
@@ -270,7 +269,7 @@
                 await publish({ pendingCancellation: { orderId: order.buy_orderid, itemName } })
                 signal.throwIfAborted()
                 // Settings can change while the intent is being saved.
-                result = evaluateOrder(order, prices, fees, feeError)
+                result = evaluateOrder(order, quote.prices, fees, feeError)
                 if (!shouldCancel(result)) return result
                 if (Date.now() - quote.startedAt >= maxQuoteAge) continue
                 await cancelOnce(order)
@@ -356,9 +355,57 @@
         })
     }
 
-    async function fetchItemPage(url, requestSignal) {
+    async function fetchQuote(order, requestSignal, load = (request) => request()) {
+        let directError
+        let partial
+        if (typeof order.description?.commodity === 'boolean') {
+            const url = new URL('/market/orderbook', location.origin)
+            url.searchParams.set('q', 'Load')
+            url.searchParams.set('qp', JSON.stringify([order.appid, order.hash_name]))
+
+            let response
+            try {
+                response = await load(() => fetchQuoteSource(url, requestSignal))
+            } catch (error) {
+                // Temporary failures retry the current source without another request to Steam.
+                if (![400, 404, 410].includes(error?.status)) throw error
+                directError = error
+            }
+            requestSignal.throwIfAborted()
+            if (response) {
+                try {
+                    const result = JSON.parse(response.source)?.data
+                    if ((result?.success !== true && result?.success !== 1) || !result.data) {
+                        throw new Error('Steam did not return an order book.')
+                    }
+                    const prices = SORSItemPrices.readOrderBook(result.data, order)
+                    const quote = { prices, startedAt: response.startedAt }
+                    if (prices.firstConfirmed) return quote
+                    partial = quote
+                    directError = prices.saleError
+                } catch (error) {
+                    directError = error
+                }
+            }
+        }
+
+        const itemHref = SORSItemPrices.getListingUrl(order)
+        try {
+            const { source, startedAt } = await load(() => fetchQuoteSource(itemHref, requestSignal))
+            requestSignal.throwIfAborted()
+            return { prices: SORSItemPrices.readItemPage(source, order), startedAt }
+        } catch (error) {
+            requestSignal.throwIfAborted()
+            if (!directError) throw error
+            const failure = new Error(`Order book: ${directError.message} · Item page: ${error?.message ?? String(error)}`)
+            if (!partial) throw failure
+            return { ...partial, prices: { ...partial.prices, saleError: failure } }
+        }
+    }
+
+    async function fetchQuoteSource(url, requestSignal) {
         const startedAt = Date.now()
-        const response = await fetch(url, { signal: requestSignal, cache: 'no-store' })
+        const response = await fetch(url, { signal: requestSignal, cache: 'no-store', credentials: 'same-origin' })
         if (!response.ok) {
             throw Object.assign(new Error(`Steam request failed (${response.status}): ${url.pathname}`), { status: response.status })
         }

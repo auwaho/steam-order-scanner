@@ -24,7 +24,7 @@ body {
 }
 
 h1, p { margin: 0; }
-h1 { font-size: 1.5rem; line-height: 1.25; font-weight: 650; }
+h1 { font-size: 1.25rem; line-height: 1.25; font-weight: 650; }
 a { color: var(--gold); text-decoration: none; }
 a:hover { text-decoration: underline; }
 

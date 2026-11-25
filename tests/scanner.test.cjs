@@ -40,15 +40,26 @@ function order(id) {
         quantity: 1, quantity_remaining: 1, description: { commodity: true } }
 }
 
-function itemPage(name, bid, sale) {
-    const book = { eCurrency: 1, cBuyOrders: 1, amtMaxBuyOrder: bid, cSellOrders: 1, rgCompactSellOrders: [sale, 1] }
-    const queries = [{ queryKey: ['market', 'orderbook', 570, name], state: { data: book } }]
+function itemBook(bid = 100, sale = 200) {
+    return { eCurrency: 1, cBuyOrders: 1, amtMaxBuyOrder: bid, cSellOrders: 1, rgCompactSellOrders: [sale, 1] }
+}
+
+function bookReply(book = itemBook()) {
+    return response({ data: { success: true, data: book } })
+}
+
+function itemPage(name, bid, sale, { appId = 570, commodity = true, description = { commodity }, book = itemBook(bid, sale) } = {}) {
+    const queries = [
+        { queryKey: ['market', 'orderbook', appId, name], state: { data: book } },
+        { queryKey: ['market', 'description', appId, name], state: { data: description } }
+    ]
     const ssr = { renderContext: { queryData: JSON.stringify({ queries }) } }
     return '<script id="valve-ssr-data">' + JSON.stringify(ssr) + '</script>'
 }
 
 function response(data, status = 200) {
-    return { ok: status === 200, status, json: async () => data, text: async () => data }
+    return { ok: status === 200, status, json: async () => data,
+        text: async () => typeof data === 'string' ? data : JSON.stringify(data) }
 }
 
 function scanner(options = {}) {
@@ -62,6 +73,7 @@ function scanner(options = {}) {
     const writes = []
     const posts = []
     const items = []
+    const pages = []
     const session = {}
     const local = { accountWideScanSettingsSORS: true, delayPerOrderSORS: 0, ...options.initial }
     const orders = options.orders || [order(1)]
@@ -127,10 +139,27 @@ function scanner(options = {}) {
             const fee = { ecurrency: 1, fee_rate: 0, fee_cap: 0 }
             return response({ data: { steam_fee: fee, publisher_fee: fee } })
         }
-        assert.equal(target.pathname.startsWith('/market/listings/570/'), true)
-        const name = decodeURIComponent(target.pathname.split('/').at(-1))
-        items.push(name)
-        return options.onItem ? options.onItem(name, items.length) : response(itemPage(name, 100, 200))
+        if (target.pathname === '/market/orderbook') {
+            assert.equal(target.origin, new URL(base).origin)
+            assert.equal(request.credentials, 'same-origin')
+            assert.equal(target.searchParams.get('q'), 'Load')
+            assert.deepEqual([...target.searchParams.keys()].sort(), ['q', 'qp'])
+            const [appId, name] = JSON.parse(target.searchParams.get('qp'))
+            assert.equal(Number.isInteger(appId), true)
+            assert.equal(typeof name, 'string')
+            items.push(name)
+            return options.onItem ? options.onItem(name, items.length) : bookReply()
+        }
+        const match = /^\/market\/listings\/(\d+)\/([^/]+)$/.exec(target.pathname)
+        assert.ok(match, 'Unexpected request: ' + target.pathname)
+        const appId = Number(match[1])
+        const pathName = decodeURIComponent(match[2])
+        const selected = orders.find((entry) => entry.appid === appId &&
+            (entry.hash_name === pathName || entry.description?.market_bucket_group_id === pathName))
+        assert.ok(selected, 'Unexpected listing: ' + pathName)
+        pages.push(selected.hash_name)
+        return options.onPage ? options.onPage(selected.hash_name, pages.length) :
+            response(itemPage(selected.hash_name, 100, 200, { appId }))
     }
 
     function openTab(id) {
@@ -147,7 +176,7 @@ function scanner(options = {}) {
             close: () => { tabs.delete(id); removed.emit(id) } }
     }
 
-    return { local, session, writes, items, posts, delays, openTab, tab: openTab(1),
+    return { local, session, writes, items, pages, posts, delays, openTab, tab: openTab(1),
         expire: (delay) => {
             const timer = [...timers.values()].find((entry) => entry.delay === delay)
             assert.ok(timer, 'No pending timeout of ' + delay)
@@ -157,10 +186,186 @@ function scanner(options = {}) {
     }
 }
 
+for (const commodity of [true, false]) {
+    test('the direct book preserves the existing price estimate for ' + (commodity ? 'commodities' : 'individual items'), async () => {
+        const selected = order(1)
+        selected.description.commodity = commodity
+        const book = { ...itemBook(), cSellOrders: 21, rgCompactSellOrders: [100, 5, 200, 2, 300, 3, 400, 1, 500, 10] }
+        const s = scanner({ orders: [selected], onItem: () => bookReply(book) })
+        await s.tab.start()
+        await s.finished()
+        const row = s.local.scanLastCompletedSORS.rows[0]
+        assert.deepEqual(s.items, ['Item 1'])
+        assert.deepEqual(s.pages, [])
+        assert.deepEqual(row.slice(0, 7), [570, 'Item 1', '1.00', '1.00', commodity ? '2.49' : '2.59',
+            commodity ? '2.49' : '2.59', true])
+        assert.equal(row[7].belowThreshold, false)
+        assert.equal(s.local.scanStatusSORS.skipped, 0)
+    })
+}
+
+for (const commodity of [true, false]) {
+    test('insufficient depth in both sources cannot cancel ' + (commodity ? 'commodities' : 'individual items'), async () => {
+        const selected = order(1)
+        selected.description.commodity = commodity
+        const book = { ...itemBook(), cSellOrders: 20, rgCompactSellOrders: [50, 1, 60, 1] }
+        const s = scanner({ orders: [selected], initial: { cancelFirstOrdersSORS: true, cancelHighOrdersSORS: true },
+            onItem: () => bookReply(book),
+            onPage: (name) => response(itemPage(name, 100, 200, { commodity, book })) })
+        await s.tab.start()
+        await s.finished()
+        assert.deepEqual(s.items, ['Item 1'])
+        assert.deepEqual(s.pages, ['Item 1'])
+        assert.equal(s.posts.length, 0)
+        assert.equal(s.local.scanStatusSORS.skipped, 0)
+        assert.equal(s.local.scanStatusSORS.withoutSalePrice, 1)
+        const row = s.local.scanLastCompletedSORS.rows[0]
+        assert.deepEqual(row.slice(4, 7), [null, null, true])
+        assert.equal(row[7].belowThreshold, null)
+    })
+}
+
+for (const description of [{}, { commodity: 'unknown' }]) {
+    test('an unclassified item in both order and HTML cannot produce an estimate or cancellation: ' + JSON.stringify(description), async () => {
+        const selected = order(1)
+        selected.description = description
+        const s = scanner({ orders: [selected], initial: { cancelFirstOrdersSORS: true, cancelHighOrdersSORS: true },
+            onPage: (name) => response(itemPage(name, 100, 50, { description })) })
+        await s.tab.start()
+        await s.finished()
+        assert.deepEqual(s.items, [])
+        assert.deepEqual(s.pages, ['Item 1'])
+        assert.equal(s.posts.length, 0)
+        assert.equal(s.local.scanStatusSORS.skipped, 0)
+        assert.equal(s.local.scanStatusSORS.withoutSalePrice, 1)
+        const row = s.local.scanLastCompletedSORS.rows[0]
+        assert.deepEqual(row.slice(4, 7), [null, null, true])
+        assert.equal(row[7].belowThreshold, null)
+    })
+}
+
+test('a direct CS2 quote preserves the exact wear and quality in the report link metadata', async () => {
+    const selected = { ...order(1), appid: 730, hash_name: 'StatTrak™ M4A1-S | Electrum (Field-Tested)',
+        description: { commodity: false, market_bucket_group_id: 'G183C20990B3004', tags: [] } }
+    const s = scanner({ orders: [selected] })
+    await s.tab.start()
+    await s.finished()
+    assert.deepEqual(s.items, [selected.hash_name])
+    assert.deepEqual(s.pages, [])
+    assert.deepEqual(s.local.scanLastCompletedSORS.rows[0][7], {
+        quality: 'strange', exterior: 'WearCategory2', groupId: 'G183C20990B3004', belowThreshold: false
+    })
+})
+
+for (const commodity of [undefined, null, 'unknown']) {
+    test('unknown commodity metadata loads HTML before calculating a quote: ' + commodity, async () => {
+        const selected = order(1)
+        selected.description = { commodity }
+        const s = scanner({ orders: [selected] })
+        await s.tab.start()
+        await s.finished()
+        assert.deepEqual(s.items, [])
+        assert.deepEqual(s.pages, ['Item 1'])
+        assert.equal(s.local.scanStatusSORS.checked, 1)
+        assert.equal(s.local.scanStatusSORS.skipped, 0)
+        assert.equal(s.local.scanLastCompletedSORS.rows[0][4], '1.99')
+    })
+}
+
+for (const direct of ['invalid JSON', 'unsuccessful reply', 'wrong currency', 'missing sell levels']) {
+    test('HTML recovers a direct quote with ' + direct, async () => {
+        const s = scanner({ onItem: () => {
+            if (direct === 'invalid JSON') return response('{invalid')
+            if (direct === 'unsuccessful reply') return response({ data: { success: false } })
+            const book = itemBook()
+            if (direct === 'wrong currency') book.eCurrency = 6
+            else book.rgCompactSellOrders = []
+            return bookReply(book)
+        } })
+        await s.tab.start()
+        await s.finished()
+        assert.deepEqual(s.items, ['Item 1'])
+        assert.deepEqual(s.pages, ['Item 1'])
+        assert.equal(s.local.scanStatusSORS.skipped, 0)
+        assert.equal(s.local.scanStatusSORS.withoutSalePrice, 0)
+        assert.equal(s.local.scanLastCompletedSORS.rows[0][4], '1.99')
+    })
+}
+
+test('a currency mismatch in both sources cannot cancel an order', async () => {
+    const foreignBook = { ...itemBook(), eCurrency: 6 }
+    const s = scanner({ initial: { cancelFirstOrdersSORS: true, cancelHighOrdersSORS: true },
+        onItem: () => bookReply(foreignBook),
+        onPage: (name) => response(itemPage(name, 100, 200, { book: foreignBook })) })
+    await s.tab.start()
+    await s.finished()
+    assert.deepEqual(s.pages, ['Item 1'])
+    assert.equal(s.posts.length, 0)
+    assert.equal(s.local.scanStatusSORS.skipped, 1)
+    assert.match(s.local.scanStatusSORS.recentIssues[0], /currency is 6; expected 1/)
+    assert.deepEqual(s.local.scanLastCompletedSORS.rows, [])
+})
+
+test('unusable JSON and HTML skip only that order without cancelling it', async () => {
+    const s = scanner({ orders: [order(1), order(2)], initial: { cancelFirstOrdersSORS: true },
+        onItem: (name) => name === 'Item 1' ? response('{invalid') : bookReply(),
+        onPage: () => response('<html>No exact order book</html>') })
+    await s.tab.start()
+    await s.finished()
+    assert.deepEqual(s.items, ['Item 1', 'Item 2'])
+    assert.deepEqual(s.pages, ['Item 1'])
+    assert.deepEqual(s.posts.map((post) => post.id), ['2'])
+    assert.equal(s.local.scanStatusSORS.checked, 2)
+    assert.equal(s.local.scanStatusSORS.skipped, 1)
+    assert.equal(s.local.scanLastCompletedSORS.rows.length, 1)
+    assert.equal(s.local.scanLastCompletedSORS.rows[0][1], 'Item 2')
+})
+
+test('an explicitly empty sell side can confirm the highest bid without an HTML request', async () => {
+    const book = { ...itemBook(), cSellOrders: 0, rgCompactSellOrders: [] }
+    const s = scanner({ initial: { cancelFirstOrdersSORS: true }, onItem: () => bookReply(book) })
+    await s.tab.start()
+    await s.finished()
+    assert.deepEqual(s.pages, [])
+    assert.equal(s.posts.length, 1)
+    assert.equal(s.local.scanStatusSORS.canceled, 1)
+    assert.equal(s.local.scanStatusSORS.withoutSalePrice, 1)
+    assert.equal(s.local.scanLastCompletedSORS.rows[0][4], null)
+})
+
+test('a partial sell side stays unconfirmed when HTML is unavailable', async () => {
+    const book = { ...itemBook(), rgCompactSellOrders: [] }
+    const s = scanner({ initial: { cancelFirstOrdersSORS: true }, onItem: () => bookReply(book),
+        onPage: () => response('<html>No exact order book</html>') })
+    await s.tab.start()
+    await s.finished()
+    assert.deepEqual(s.pages, ['Item 1'])
+    assert.equal(s.posts.length, 0)
+    assert.equal(s.local.scanStatusSORS.skipped, 0)
+    assert.equal(s.local.scanStatusSORS.withoutSalePrice, 1)
+    assert.equal(s.local.scanLastCompletedSORS.rows[0][6], true)
+})
+
+for (const commodity of [true, false]) {
+    test('a short direct sample falls back to HTML for ' + (commodity ? 'commodities' : 'individual items'), async () => {
+        const selected = order(1)
+        selected.description.commodity = commodity
+        const incomplete = { ...itemBook(), cSellOrders: 20, rgCompactSellOrders: [150, 1, 200, 1] }
+        const complete = { ...itemBook(), cSellOrders: 20, rgCompactSellOrders: [150, 1, 200, 1, 250, 1, 300, 17] }
+        const s = scanner({ orders: [selected], onItem: () => bookReply(incomplete),
+            onPage: (name) => response(itemPage(name, 100, 200, { commodity, book: complete })) })
+        await s.tab.start()
+        await s.finished()
+        assert.deepEqual(s.pages, ['Item 1'])
+        assert.equal(s.local.scanStatusSORS.skipped, 0)
+        assert.equal(s.local.scanLastCompletedSORS.rows[0][4], commodity ? '2.24' : '2.99')
+    })
+}
+
 for (const checkFirst of [true, false]) {
-    test('fresh HTML can revoke an automatic cancellation based on ' + (checkFirst ? 'highest bid' : 'sale price'), async () => {
+    test('a fresh order book can revoke an automatic cancellation based on ' + (checkFirst ? 'highest bid' : 'sale price'), async () => {
         const s = scanner({ initial: checkFirst ? { cancelFirstOrdersSORS: true } : { cancelHighOrdersSORS: true },
-            feeDelay: 16000, onItem: (name, index) => response(itemPage(name,
+            feeDelay: 16000, onItem: (name, index) => bookReply(itemBook(
                 checkFirst && index === 1 ? 100 : 125, !checkFirst && index === 1 ? 90 : 200)) })
         await s.tab.start()
         await s.finished()
@@ -173,7 +378,7 @@ for (const checkFirst of [true, false]) {
 
 test('a failed freshness check skips only that order and never submits the stale cancellation', async () => {
     const s = scanner({ orders: [order(1), order(2)], initial: { cancelFirstOrdersSORS: true }, feeDelay: 16000,
-        onItem: (name, index) => index === 2 ? response(null, 429) : response(itemPage(name, 100, 200)) })
+        onItem: (name, index) => index === 2 ? response(null, 429) : bookReply() })
     await s.tab.start()
     await s.finished()
     assert.deepEqual(s.items, ['Item 1', 'Item 1', 'Item 2'])
@@ -204,8 +409,8 @@ test('if the intent cannot be persisted no cancellation is sent or counted as pe
     assert.match(s.local.scanStatusSORS.recentIssues[0], /Storage unavailable/)
 })
 
-test('ordinary item HTML keeps its original retry cadence', async () => {
-    const s = scanner({ onItem: (name, index) => index <= 7 ? response(null, 429) : response(itemPage(name, 100, 200)) })
+test('order book HTTP 429 keeps its original retry cadence without fetching HTML', async () => {
+    const s = scanner({ onItem: (name, index) => index <= 7 ? response(null, 429) : bookReply() })
     await s.tab.start()
     await s.finished()
     assert.deepEqual(s.delays, [5000, 10000, 10000, 10000, 10000, 120000, 5000])
@@ -214,6 +419,21 @@ test('ordinary item HTML keeps its original retry cadence', async () => {
     assert.equal(firstRetry.itemAppId, 570)
     assert.equal(s.local.scanStatusSORS.checked, 1)
     assert.equal(s.local.scanStatusSORS.itemAppId, null)
+    assert.deepEqual(s.pages, [])
+})
+
+test('HTML fallback retains the existing request retry cadence', async () => {
+    const selected = order(1)
+    delete selected.description.commodity
+    const s = scanner({ orders: [selected],
+        onPage: (name, index) => index <= 7 ? response(null, 429) : response(itemPage(name, 100, 200)) })
+    await s.tab.start()
+    await s.finished()
+    assert.deepEqual(s.delays, [5000, 10000, 10000, 10000, 10000, 120000, 5000])
+    assert.deepEqual(s.items, [])
+    assert.equal(s.pages.length, 8)
+    assert.equal(s.local.scanStatusSORS.checked, 1)
+    assert.equal(s.local.scanStatusSORS.skipped, 0)
 })
 
 for (const action of ['stop', 'timeout', 'close']) {
@@ -274,7 +494,8 @@ test('last complete report migrates, survives startup HTTP 429, and changes only
 test('reports both matching reasons independently and counts each flagged order once', async () => {
     const quotes = [[100, 200], [100, 90], [125, 90], [100, 0], [125, 200]]
     const s = scanner({ orders: quotes.map((_, index) => order(index + 1)),
-        onItem: (name, index) => response(itemPage(name, ...quotes[index - 1])) })
+        onItem: (name, index) => bookReply(itemBook(...quotes[index - 1])),
+        onPage: (name) => response(itemPage(name, ...quotes[Number(name.slice(5)) - 1])) })
     await s.tab.start()
     await s.finished()
     assert.equal(s.local.scanStatusSORS.checked, 5)

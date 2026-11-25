@@ -56,10 +56,10 @@ var SORSAccountMarketData = (() => {
             }
             if (source.description && typeof source.description === 'object' && !Array.isArray(source.description)) {
                 order.description = { ...source.description }
-                if ('commodity' in source.description) {
-                    order.description.commodity = source.description.commodity === true ||
-                        source.description.commodity === 1 || source.description.commodity === '1'
-                }
+                const commodity = source.description.commodity
+                if (commodity === true || commodity === 1 || commodity === '1') order.description.commodity = true
+                else if (commodity === false || commodity === 0 || commodity === '0') order.description.commodity = false
+                else delete order.description.commodity
             } else {
                 delete order.description
             }

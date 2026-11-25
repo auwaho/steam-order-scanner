@@ -25,18 +25,31 @@ var SORSItemPrices = (() => {
     const cs2Exteriors = ['Factory New', 'Minimal Wear', 'Field-Tested', 'Well-Worn', 'Battle-Scarred']
     const cs2MusicKit = /^(?:StatTrak™ )?Music Kit \| /
 
+    function readOrderBook(book, order) {
+        const isCommodity = order.description?.commodity
+        if (typeof isCommodity !== 'boolean') throw new Error('The buy order does not specify whether the item is a commodity.')
+        return {
+            ...readMarketPrices(book, order.wallet_currency, isCommodity),
+            getReportVariant: () => getReportVariant(order)
+        }
+    }
+
     function readItemPage(page, order) {
         const { appid: appId, hash_name: itemName, wallet_currency: currency } = order
         const { queryData, loaderData } = extractSteamQueryData(page)
         const description = findItemQuery(queryData, 'description', appId, itemName)
-        const isCommodity = (description?.commodity ?? order.description?.commodity) === true
+        const isCommodity = parseCommodity(description?.commodity) ?? order.description?.commodity
         const book = findItemQuery(queryData, 'orderbook', appId, itemName)
         if (!book) throw new Error('The item page does not contain an order book for this exact item.')
-        const prices = readMarketPrices(book, currency, isCommodity)
         return {
-            ...prices,
-            getReportVariant: () => getReportVariant(appId, itemName, loaderData, order.description, description)
+            ...readMarketPrices(book, currency, isCommodity),
+            getReportVariant: () => getReportVariant(order, loaderData, description)
         }
+    }
+
+    function parseCommodity(value) {
+        if (value === true || value === 1 || value === '1') return true
+        if (value === false || value === 0 || value === '0') return false
     }
 
     function getListingUrl({ appid: appId, hash_name: itemName, description }) {
@@ -44,27 +57,35 @@ var SORSItemPrices = (() => {
         const itemUrl = new URL(listingPath + fixedEncodeURIComponent(itemName))
         if (appId !== 730) return itemUrl
 
-        const wear = cs2Exteriors.findIndex((exterior) => itemName.endsWith(` (${exterior})`))
-        const isKnifeOrGlove = itemName.startsWith('★ ')
-        if (wear === -1 && !isKnifeOrGlove && !cs2MusicKit.test(itemName)) return itemUrl
+        const variant = getHashVariant(itemName)
+        if (!variant) return itemUrl
 
         const groupId = description?.market_bucket_group_id
         const url = typeof groupId === 'string' && /^G[0-9A-F]+$/i.test(groupId)
             ? new URL(listingPath + groupId)
             : itemUrl
-        const name = itemName.replace(/^★ /, '')
-        const quality = name.startsWith('StatTrak™ ') ? 'strange' : name.startsWith('Souvenir ') ? 'tournament' : 'normal'
-        url.searchParams.set('category_Quality', quality)
-        if (wear !== -1 || isKnifeOrGlove) {
-            url.searchParams.set('category_Exterior', wear === -1 ? 'WearCategoryNA' : `WearCategory${wear}`)
-        }
+        url.searchParams.set('category_Quality', variant.quality)
+        if (variant.exterior) url.searchParams.set('category_Exterior', variant.exterior)
         url.searchParams.set('appid', String(appId))
         return url
     }
 
-    function getReportVariant(appId, itemName, loaderData, ...descriptions) {
+    function getHashVariant(itemName) {
+        const wear = cs2Exteriors.findIndex((exterior) => itemName.endsWith(` (${exterior})`))
+        const isKnifeOrGlove = itemName.startsWith('★ ')
+        if (wear === -1 && !isKnifeOrGlove && !cs2MusicKit.test(itemName)) return null
+
+        const name = itemName.replace(/^★ /, '')
+        const quality = name.startsWith('StatTrak™ ') ? 'strange' : name.startsWith('Souvenir ') ? 'tournament' : 'normal'
+        if (wear !== -1) return { quality, exterior: `WearCategory${wear}` }
+        return isKnifeOrGlove ? { quality, exterior: 'WearCategoryNA' } : { quality }
+    }
+
+    function getReportVariant({ appid: appId, hash_name: itemName, description }, loaderData, pageDescription) {
         if (appId !== 730) return null
         const { filters, group } = findReportBucket(loaderData, appId, itemName) ?? {}
+        const hashVariant = getHashVariant(itemName)
+        const descriptions = [description, pageDescription]
         const tags = descriptions.flatMap((description) => Array.isArray(description?.tags) ? description.tags : [])
         const wearTag = /^WearCategory(?:\d+|NA)$/
         const findFilter = (category, pattern) => Array.isArray(filters) && filters.find((filter) =>
@@ -76,10 +97,13 @@ var SORSItemPrices = (() => {
             ).map((tag) => tag.internal_name))
             if (values.size === 1) return values.values().next().value
         }
-        const exterior = findFilter('Exterior', wearTag) || findUnambiguousTag('Exterior', wearTag)
+        const isMusicKit = cs2MusicKit.test(itemName)
+        const exterior = findFilter('Exterior', wearTag) ||
+            (isMusicKit ? undefined : findUnambiguousTag('Exterior', wearTag) || hashVariant?.exterior)
         // A knife can have descriptive tags such as `unusual` that are not its Market filter.
-        const quality = findFilter('Quality', /^[A-Za-z0-9_]+$/) || findUnambiguousTag('Quality', /^(normal|strange|tournament)$/)
-        if (!quality || (!exterior && !cs2MusicKit.test(itemName))) return null
+        const quality = findFilter('Quality', /^[A-Za-z0-9_]+$/) ||
+            findUnambiguousTag('Quality', /^(normal|strange|tournament)$/) || hashVariant?.quality
+        if (!quality || (!exterior && !isMusicKit)) return null
 
         const groupId = [...descriptions.map((description) => description?.market_bucket_group_id), group]
             .find((value) => typeof value === 'string' && /^G[0-9A-F]+$/i.test(value))
@@ -103,21 +127,26 @@ var SORSItemPrices = (() => {
         return null
     }
 
-    function estimateBuyerPrice(sales, isCommodity) {
+    function estimateBuyerPrice(sales, isCommodity, totalSellOrders) {
         const sample = []
+        const sampleSize = isCommodity ? 4 : 10
+        let available = 0
         for (let i = 0; i + 1 < sales.length; i += 2) {
             const [price, quantity] = [sales[i], sales[i + 1]]
             if (!Number.isSafeInteger(price) || price <= 0 || !Number.isSafeInteger(quantity) || quantity <= 0) {
                 throw new Error('Steam returned invalid sell prices.')
             }
 
+            available += quantity
             if (isCommodity) {
                 sample.push(price)
-                if (sample.length === 4) break
             } else {
-                for (let n = 0; n < quantity && sample.length < 10; n++) sample.push(price)
-                if (sample.length === 10) break
+                for (let n = 0; n < quantity && sample.length < sampleSize; n++) sample.push(price)
             }
+            if (sample.length === sampleSize) break
+        }
+        if (Number.isSafeInteger(totalSellOrders) && available < totalSellOrders && sample.length < sampleSize) {
+            throw new Error('Steam order book omits sell listings needed to estimate the price.')
         }
         const prices = isCommodity || sample.length < 2 ? sample : sample.slice(Math.max(sample.length - 5, 1))
         return prices.length ? Math.floor(prices.reduce((sum, price) => sum + price, 0) / prices.length) : 0
@@ -164,7 +193,8 @@ var SORSItemPrices = (() => {
                     saleError: new Error('Steam order book has no sell listings.')
                 }
             }
-            return { firstBid, firstConfirmed: true, marketGross: estimateBuyerPrice(sales, isCommodity) }
+            if (typeof isCommodity !== 'boolean') throw new Error('Steam did not specify whether the item is a commodity.')
+            return { firstBid, firstConfirmed: true, marketGross: estimateBuyerPrice(sales, isCommodity, book.cSellOrders) }
         } catch (error) {
             return { firstBid, firstConfirmed: false, saleError: error }
         }
@@ -191,5 +221,5 @@ var SORSItemPrices = (() => {
         return encodeURIComponent(value).replace(/[!'()*]/g, (char) => '%' + char.charCodeAt(0).toString(16))
     }
 
-    return { getListingUrl, readItemPage }
+    return { getListingUrl, readItemPage, readOrderBook }
 })()
