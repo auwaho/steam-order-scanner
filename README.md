@@ -1,52 +1,46 @@
 <p align="center">
-  <img width="128" height="128" src="https://github.com/auwaho/steam-order-scanner/blob/master/logo.png">
+  <img width="128" height="128" src="SORS/ico/128.png" alt="Steam Order Scanner icon">
 </p>
 <h1 align="center">Steam Order Scanner</h1>
 
 <p align="center">
-  <a href="https://chrome.google.com/webstore/detail/steam-order-scanner/poaddkofidcihbbodleahclcjoghdilh"><img src="https://developer.chrome.com/static/docs/webstore/branding/image/UV4C4ybeBTsZt43U4xis.png" alt="Get Steam Order Scanner for Chrome"></a> 
+  <a href="https://chromewebstore.google.com/detail/steam-order-scanner/poaddkofidcihbbodleahclcjoghdilh"><img src="https://developer.chrome.com/static/docs/webstore/branding/image/UV4C4ybeBTsZt43U4xis.png" alt="Get Steam Order Scanner for Chrome"></a>
 </p>
 
-<h3 align="center">
-  <a href="https://github.com/auwaho/steam-order-scanner/releases/latest">Direct download (GitHub release)</a>
-</h3>
+<p align="center">
+  <a href="https://github.com/auwaho/steam-order-scanner/releases/latest">Download from GitHub</a>
+</p>
 
-**Note: I highly recommend running your first scan with cancellation options disabled ("Cancel at highest bid" and "Cancel below threshold") to make sure the extension works correctly for you. Compatibility checked with: Steam Inventory Helper, Steam Trader Helper, Augmented Steam.**
+I built Steam Order Scanner to make checking Steam Market buy orders a little less tedious. It helps you see which bids are worth another look and what you could get back after fees.
 
-## Description
+![Steam Order Scanner showing scan progress on the Buy Orders page](screenshots/steam-market-panel.png)
 
-Steam Order Scanner (SORS) is a Chrome extension that helps keep your Steam Community Market buy orders profitable and enhances market pages with useful features.
+## Getting started
 
-![alt text](https://github.com/auwaho/steam-order-scanner/blob/master/screenshots/screenshot.png 'Steam Listings Scanner')
+1. Sign in to Steam in Chrome and open your buy orders. [My Buy Orders](https://steamcommunity.com/market/buyorders)
+2. Hit **Start scan**. The panel checks all your active buy orders, so you can keep the page open and let it run.
+3. Open **Report** to see orders at the highest bid or below your profit target. You can search, filter, and sort the results, and come back to the last completed report later.
+
+The last item you open stays highlighted in your report tab.
+
+The extension popup is where you can set your profit threshold and adjust scan timing. For your first scan, I'd leave both auto-cancel options off and have a look through the results first.
+
+## A few other handy things
+
+- See how much you've committed to buy orders and what you'd need to sell each item for to break even.
+- See the totals buyers pay and what you'd receive after fees. [My Active Sell Listings](https://steamcommunity.com/market/activelistings)
+- On supported item pages, see the seller's proceeds and how many sold in the last 24 hours.
+- Use **Show more orders** to expand the price tables. For items with variants, pick the exact variant and open its buy-order table.
 
 <details>
-  <summary>All screenshots</summary>
-  
-![alt text](https://github.com/auwaho/steam-order-scanner/blob/master/screenshots/screenshot_7.png "Steam Listings Scanner")
+  <summary>More screenshots</summary>
 
-![alt text](https://github.com/auwaho/steam-order-scanner/blob/master/screenshots/screenshot_2.png 'Steam Listings Scanner')
+![Scan report showing filters, sale prices, proceeds after fees, and estimated profit](screenshots/order-report.png)
 
-![alt text](https://github.com/auwaho/steam-order-scanner/blob/master/screenshots/screenshot_3.png 'Steam Listings Scanner')
-
-![alt text](https://github.com/auwaho/steam-order-scanner/blob/master/screenshots/screenshot_4.png 'Steam Listings Scanner')
-
-![alt text](https://github.com/auwaho/steam-order-scanner/blob/master/screenshots/screenshot_5.png 'Steam Listings Scanner')
-
-![alt text](https://github.com/auwaho/steam-order-scanner/blob/master/screenshots/screenshot_6.png 'Steam Listings Scanner')
+<img src="screenshots/extension-settings.png" alt="Extension popup showing scan and market settings" width="368">
 
 </details>
 
-#### Extension features
+## Thanks for using it!
 
--   **Steam Order Scanner panel** on the [Buy Orders page](https://steamcommunity.com/market/buyorders) scans all active buy orders without scrolling. Start and stop the scan, see the current item, progress and orders to review, and collapse the panel when you need more room. The extension popup has settings and shortcuts to Steam and the report.
--   **Live report** flags orders at the highest bid or below your profit threshold. Search, filter and sort the results, and compare your order price, break-even sale price, market sale price, proceeds after fees and estimated profit. The last completed report stays available. CS2 links open the scanned wear and category when available.
--   **Optional auto-cancellation** can act on any active buy order that meets your settings. "Cancel at highest bid" matches Steam's highest bid. Steam does not show who is first among buyers at the same price.
--   See **what the seller receives after fees** on supported item listings.
--   **Show more orders** expands the buy and sell price tables for cases and other commodity items. For weapons and other items with variants, select the exact variant and open the buy-order table. The number of price levels is configurable in the popup.
--   Show the **minimum resale price to recover the bid after fees** below each bid on the Buy Orders page.
--   Show **buy-order totals** on the Buy Orders page and **gross and net listing totals** on the [Active Listings page](https://steamcommunity.com/market/activelistings).
--   Show **last 24 hours sold quantity** under the median sales graph on item pages.
-
-## Supporting the project
-
-If you find the project useful, you can help its further development. The best and easiest way to do this is to ⭐ **Star** it. There are also several links inside the 💗 **Sponsor** button if you want to provide additional help. Also, if you have any ideas for the development of the project, you can send them to me at the email address indicated in the profile.
+If the extension helped you, a star on GitHub or a kind review is enough to let me know it was worth making. :)

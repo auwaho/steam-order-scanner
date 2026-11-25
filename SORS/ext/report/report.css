@@ -114,6 +114,7 @@ progress.has-issues::-webkit-progress-value { background: var(--warn); }
 table { width: 100%; min-width: 37rem; border-collapse: separate; border-spacing: 0; }
 th, td { padding: 6px var(--gutter); border-top: 1px solid var(--line); text-align: start; }
 td { vertical-align: top; }
+tbody tr[data-last-opened] td:first-child { box-shadow: inset 3px 0 var(--gold); }
 thead th {
     position: sticky;
     top: 0;

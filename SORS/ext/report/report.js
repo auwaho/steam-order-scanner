@@ -27,6 +27,7 @@ const activePhases = new Set(['loading', 'scanning', 'retrying', 'stopping'])
 const games = new Map([[730, 'CS2'], [570, 'Dota 2'], [440, 'Team Fortress 2'], [753, 'Steam Community Items']])
 const reasonLabels = { below: 'Below target', top: 'At highest bid', missing: 'Price unavailable' }
 const filterLabels = { all: 'All', below: 'Below target', top: 'Highest bid', missing: 'Unavailable' }
+const lastOpenedStorageKey = 'lastOpenedReportItemSORS'
 const reportState = {}
 const changesBeforeLoad = new Set()
 let initialReadComplete = false
@@ -41,6 +42,14 @@ let activeFilter = 'all'
 let searchTerm = ''
 let matches = 0
 let filterCounts = { all: 0, below: 0, top: 0, missing: 0 }
+let lastOpenedItem
+let lastOpenedRow
+
+try {
+    lastOpenedItem = sessionStorage.getItem(lastOpenedStorageKey)
+} catch {
+    // The open report can still track the item in memory.
+}
 
 const table = document.getElementById('reportTable')
 const tableBody = document.getElementById('badOrd')
@@ -84,6 +93,14 @@ function createLink(href, text) {
     link.rel = 'noopener'
     link.textContent = text
     return link
+}
+
+function highlightLastOpened(row, link) {
+    lastOpenedRow?.row.removeAttribute('data-last-opened')
+    lastOpenedRow?.link.removeAttribute('aria-description')
+    row.setAttribute('data-last-opened', '')
+    link.setAttribute('aria-description', 'Last opened item')
+    lastOpenedRow = { row, link }
 }
 
 function appendPriceCell(row, amount, detail, title) {
@@ -143,7 +160,23 @@ function createRow(entry, index, [prefix, suffix]) {
     item.className = 'item'
     const name = String(hashName)
     const wear = Number(appId) === 730 && / \((Factory New|Minimal Wear|Field-Tested|Well-Worn|Battle-Scarred)\)$/.exec(name)
-    item.appendChild(createLink(getListingUrl(appId, name, metadata), wear ? name.slice(0, wear.index) : name))
+    const listing = createLink(getListingUrl(appId, name, metadata), wear ? name.slice(0, wear.index) : name)
+    item.appendChild(listing)
+    const listingKey = JSON.stringify([renderedReport, index, String(appId), name])
+    if (listingKey === lastOpenedItem) highlightLastOpened(row, listing)
+    const rememberListing = () => {
+        lastOpenedItem = listingKey
+        highlightLastOpened(row, listing)
+        try {
+            sessionStorage.setItem(lastOpenedStorageKey, listingKey)
+        } catch {
+            // The current highlight is already applied.
+        }
+    }
+    listing.addEventListener('click', rememberListing)
+    listing.addEventListener('auxclick', (event) => {
+        if (event.button === 1) rememberListing()
+    })
     const game = games.get(Number(appId)) ?? `App ${appId}`
     const itemMeta = document.createElement('span')
     itemMeta.className = 'item-meta'
@@ -277,6 +310,7 @@ function renderRows({ entries, affixes, key }) {
     const identity = JSON.stringify([key, ...money])
     if (renderedReport !== identity || renderedEntries > entries.length) {
         tableBody.replaceChildren()
+        lastOpenedRow = undefined
         renderedReport = identity
         renderedEntries = 0
         rows = []

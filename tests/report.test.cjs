@@ -31,15 +31,15 @@ function element(tag = 'div') {
         },
         replaceChildren() { this.children = [] },
         addEventListener(event, listener) { listeners.set(event, listener) },
-        dispatch(event) { listeners.get(event)?.() },
-        click() { this.dispatch('click') },
+        dispatch(event, details = {}) { listeners.get(event)?.({ type: event, button: 0, ...details }) },
+        click(details) { this.dispatch('click', details) },
         setAttribute(key, value) { attributes.set(key, value) },
         removeAttribute(key) { attributes.delete(key) },
         getAttribute(key) { return attributes.get(key) }
     }
 }
 
-function openReport(initial) {
+function openReport(initial, session = new Map()) {
     const ids = new Map()
     function getElementById(id) {
         if (!ids.has(id)) ids.set(id, element())
@@ -58,6 +58,10 @@ function openReport(initial) {
     let update
     const context = vm.createContext({
         URLSearchParams,
+        sessionStorage: {
+            getItem: key => session.get(key) ?? null,
+            setItem: (key, value) => session.set(key, String(value))
+        },
         document: { getElementById, createElement: element, createDocumentFragment: () => element('fragment') },
         chrome: { storage: {
             local: { get: (_keys, callback) => callback(initial) },
@@ -80,6 +84,8 @@ function openReport(initial) {
 
 const entry = (name, price = '1.00') => [570, name, price, '1.16', '0.88', '1.01', true]
 const rowName = row => row.children[0].children[0].textContent
+const itemLink = row => row.children[0].children[0]
+const lastOpened = report => report.rows.filter(row => row.getAttribute('data-last-opened') === '')
 
 test('a failed scan can show the last completed report without hiding the current failure', () => {
     const report = openReport({
@@ -126,6 +132,79 @@ test('incoming rows preserve sorting and existing row nodes', () => {
     report.sort('order').click()
     assert.deepEqual(report.rows.map(rowName), ['A', 'C', 'B'])
     assert.equal(report.sort('order').parentElement.getAttribute('aria-sort'), 'ascending')
+})
+
+test('the last opened item stays marked while rows are sorted, filtered and appended', () => {
+    const entries = [entry('Alpha', '1.00'), entry('Bravo', '3.00')]
+    const status = { runId: 'live', phase: 'scanning', checked: 2, total: 5 }
+    const report = openReport({ scanStatusSORS: status, scanTableBadSORS: entries })
+    const selected = report.rows[1]
+    itemLink(selected).click()
+    assert.deepEqual(lastOpened(report), [selected])
+    assert.equal(itemLink(selected).getAttribute('aria-description'), 'Last opened item')
+
+    report.sort('order').click()
+    assert.equal(report.rows[0], selected)
+    assert.deepEqual(lastOpened(report), [selected])
+    report.filter('below').click()
+    assert.equal(selected.hidden, true)
+    report.filter('all').click()
+    assert.equal(selected.hidden, false)
+
+    const search = report.getElementById('reportSearch')
+    search.value = 'Alpha'
+    search.dispatch('input')
+    assert.equal(selected.hidden, true)
+    search.value = ''
+    search.dispatch('input')
+    report.update({ scanTableTailSORS: [entry('Charlie', '2.00')] })
+    assert.deepEqual(report.rows.map(rowName), ['Bravo', 'Charlie', 'Alpha'])
+    assert.deepEqual(lastOpened(report), [selected])
+})
+
+test('only opening an item listing changes the last opened marker and keeps link navigation intact', () => {
+    const report = openReport({ scanTableBadSORS: [entry('A'), entry('B')] })
+    const [first, second] = report.rows
+    let prevented = 0
+    const activation = { preventDefault() { prevented++ } }
+    const gameLink = second.children[0].children[1].children[0]
+    gameLink.click(activation)
+    assert.equal(lastOpened(report).length, 0)
+
+    itemLink(first).click(activation)
+    itemLink(second).dispatch('auxclick', { ...activation, button: 2 })
+    assert.deepEqual(lastOpened(report), [first])
+    itemLink(second).dispatch('auxclick', { ...activation, button: 1 })
+    assert.deepEqual(lastOpened(report), [second])
+    assert.equal(itemLink(first).getAttribute('aria-description'), undefined)
+    assert.equal(itemLink(second).target, '_blank')
+    assert.equal(prevented, 0)
+})
+
+test('last opened selection survives a tab reload and distinguishes duplicate rows and report identities', () => {
+    const session = new Map()
+    const duplicate = entry('Same item')
+    const status = { runId: 'live', phase: 'scanning', checked: 2, total: 3 }
+    const state = {
+        scanStatusSORS: status,
+        scanTableBadSORS: [duplicate, duplicate],
+        scanLastCompletedSORS: { runId: 'previous', rows: [duplicate, duplicate], currencyAffixes: ['', '€'] }
+    }
+    const original = openReport(state, session)
+    itemLink(original.rows[1]).click()
+    assert.deepEqual(lastOpened(original), [original.rows[1]])
+
+    const reloaded = openReport(state, session)
+    assert.deepEqual(lastOpened(reloaded), [reloaded.rows[1]])
+    reloaded.getElementById('switchReport').click()
+    assert.equal(lastOpened(reloaded).length, 0)
+    reloaded.getElementById('switchReport').click()
+    assert.deepEqual(lastOpened(reloaded), [reloaded.rows[1]])
+
+    reloaded.update({ scanStatusSORS: { ...status, runId: 'next' } })
+    assert.equal(lastOpened(reloaded).length, 0)
+    const replacement = openReport({ ...state, scanTableBadSORS: [duplicate, entry('Different item')] }, session)
+    assert.equal(lastOpened(replacement).length, 0)
 })
 
 test('filters use the recorded reason, handle old rows and keep searches active as rows arrive', () => {
