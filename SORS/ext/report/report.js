@@ -24,6 +24,9 @@ const reportKeys = [
     'scanErrorSORS', 'scanStatusSORS', 'scanLastCompletedSORS'
 ]
 const activePhases = new Set(['loading', 'scanning', 'retrying', 'stopping'])
+const games = new Map([[730, 'CS2'], [570, 'Dota 2'], [440, 'Team Fortress 2'], [753, 'Steam Community Items']])
+const reasonLabels = { below: 'Below target', top: 'At highest bid', missing: 'Price unavailable' }
+const filterLabels = { all: 'All', below: 'Below target', top: 'Highest bid', missing: 'Unavailable' }
 const reportState = {}
 const changesBeforeLoad = new Set()
 let initialReadComplete = false
@@ -34,10 +37,18 @@ let renderedEntries = 0
 let rows = []
 let sortColumn
 let ascending = false
+let activeFilter = 'all'
+let searchTerm = ''
+let matches = 0
+let filterCounts = { all: 0, below: 0, top: 0, missing: 0 }
 
 const table = document.getElementById('reportTable')
 const tableBody = document.getElementById('badOrd')
 const sortButtons = [...table.querySelectorAll('thead button')]
+const filterButtons = [...document.getElementById('filters').querySelectorAll('button')]
+const search = document.getElementById('reportSearch')
+const extraSort = document.getElementById('extraSort')
+const tableRegion = document.getElementById('tableRegion')
 const empty = document.getElementById('emptyReport')
 const viewControls = document.getElementById('reportView')
 const viewLabel = document.getElementById('reportViewLabel')
@@ -66,24 +77,27 @@ function getListingUrl(appId, hashName, metadata) {
     return `${listingPath}${groupPath}?${filters}`
 }
 
-function appendLinkCell(row, href, text) {
+function createLink(href, text) {
     const link = document.createElement('a')
     link.href = href
     link.target = '_blank'
     link.rel = 'noopener'
     link.textContent = text
-    row.insertCell().appendChild(link)
+    return link
 }
 
 function appendPriceCell(row, amount, detail, title) {
     const cell = row.insertCell()
+    cell.className = 'price'
     cell.textContent = amount
     if (detail != null) {
         const span = document.createElement('span')
+        span.className = 'price-detail'
         span.title = title
         span.textContent = `(${detail})`
-        cell.append(' ', span)
+        cell.appendChild(span)
     }
+    return cell
 }
 
 function decodeCurrencyAffix(value) {
@@ -96,35 +110,69 @@ function decodeCurrencyAffix(value) {
 }
 
 function numberOrNull(value) {
-    if (value == null) return null
+    if (value == null || value === '') return null
     const number = Number(value)
     return Number.isFinite(number) ? number : null
+}
+
+function signedAmount(value, prefix, suffix) {
+    const sign = value > 0 ? '+' : value < 0 ? '−' : ''
+    return sign + prefix + Math.abs(value).toFixed(2) + suffix
 }
 
 function createRow(entry, index, [prefix, suffix]) {
     const [appId, hashName, order, breakEven, marketNet, marketGross, first, metadata] = entry
     const atTop = first === true || first === 1 || first === '1'
-    const hasMarketEstimate = marketNet != null && marketGross != null
+    const bid = numberOrNull(order)
+    const net = numberOrNull(marketNet)
+    const gross = numberOrNull(marketGross)
+    const hasMarketEstimate = net > 0 && gross > 0
+    const hasProfit = hasMarketEstimate && bid !== null
     const format = amount => prefix + amount + suffix
-    const profit = hasMarketEstimate ? format((marketNet - order).toFixed(2)) : null
-    const profitPercent = hasMarketEstimate ? (100 - (order / marketNet) * 100).toFixed(2) : null
+    const profit = hasProfit ? Number((net - bid).toFixed(2)) : null
+    const profitPercent = hasProfit ? Number((100 - (bid / net) * 100).toFixed(2)) : null
+    // Legacy rows only recorded whether the bid was highest. A priced non-highest row was flagged by the threshold.
+    const below = metadata?.belowThreshold === undefined ? !atTop && hasMarketEstimate : metadata.belowThreshold === true
+    const reasons = []
+    if (below) reasons.push('below')
+    if (!hasMarketEstimate) reasons.push('missing')
+    if (atTop) reasons.push('top')
+
     const row = document.createElement('tr')
-    const numberCell = document.createElement('th')
-    numberCell.scope = 'row'
-    numberCell.textContent = index + 1
-    row.appendChild(numberCell)
-    appendLinkCell(row, `https://steamcommunity.com/market/search?appid=${encodeURIComponent(appId)}`, appId)
-    appendLinkCell(row, getListingUrl(appId, hashName, metadata), hashName)
-    row.insertCell().textContent = atTop ? '+' : '-'
-    appendPriceCell(row, format(order), breakEven == null ? null : format(breakEven), 'Break-even point.')
+    const item = row.insertCell()
+    item.className = 'item'
+    const name = String(hashName)
+    const wear = Number(appId) === 730 && / \((Factory New|Minimal Wear|Field-Tested|Well-Worn|Battle-Scarred)\)$/.exec(name)
+    item.appendChild(createLink(getListingUrl(appId, name, metadata), wear ? name.slice(0, wear.index) : name))
+    const game = games.get(Number(appId)) ?? `App ${appId}`
+    const itemMeta = document.createElement('span')
+    itemMeta.className = 'item-meta'
+    if (wear) itemMeta.textContent = wear[1] + ' · '
+    const gameLink = createLink(`https://steamcommunity.com/market/search?appid=${encodeURIComponent(appId)}`, game)
+    gameLink.title = `Steam Market · App ID ${appId}`
+    itemMeta.appendChild(gameLink)
+    item.appendChild(itemMeta)
+
+    const reasonCell = row.insertCell()
+    for (const reason of reasons) {
+        const label = document.createElement('span')
+        label.className = `reason reason-${reason}`
+        label.textContent = reasonLabels[reason]
+        reasonCell.appendChild(label)
+    }
+    appendPriceCell(row, bid == null ? '—' : format(order), breakEven == null ? null : format(breakEven), 'Break-even sale price.')
     appendPriceCell(row, hasMarketEstimate ? format(marketGross) : '—',
-        hasMarketEstimate ? format(marketNet) : null, 'This is how much you will receive.')
-    appendPriceCell(row, profitPercent == null ? '—' : `${profitPercent}%`, profit, 'Net profit.')
+        hasMarketEstimate ? format(marketNet) : null, 'Proceeds after fees.')
+    const profitCell = appendPriceCell(row, hasProfit ? signedAmount(profitPercent, '', '%') : '—',
+        hasProfit ? signedAmount(profit, prefix, suffix) : null, 'Net profit.')
+    if (profit > 0) profitCell.className += ' profit-gain'
+    if (profit < 0) profitCell.className += ' profit-loss'
     return {
-        element: row,
-        index,
-        values: [index, numberOrNull(appId), String(hashName), Number(atTop), numberOrNull(order),
-            hasMarketEstimate ? numberOrNull(marketGross) : null, numberOrNull(profitPercent)]
+        element: row, index, reasons, searchText: `${name} ${game} ${appId}`.toLowerCase(),
+        values: {
+            scan: index, app: numberOrNull(appId), item: name, reason: reasons.map(key => reasonLabels[key]).join(', '),
+            top: Number(atTop), order: bid, market: hasMarketEstimate ? gross : null, profit: profitPercent
+        }
     }
 }
 
@@ -149,18 +197,51 @@ function addSortedRow(row) {
     rows.splice(low, 0, row)
 }
 
-for (const [column, button] of sortButtons.entries()) {
+function sortBy(column, asc) {
+    sortColumn = column
+    ascending = asc
+    for (const control of sortButtons) {
+        if (control.dataset.sort === column) control.parentElement.setAttribute('aria-sort', asc ? 'ascending' : 'descending')
+        else control.parentElement.removeAttribute('aria-sort')
+    }
+    rows.sort(compareRows)
+    tableBody.append(...rows.map(row => row.element))
+}
+
+for (const button of sortButtons) {
     button.addEventListener('click', () => {
-        ascending = sortColumn === column && !ascending
-        sortColumn = column
-        for (const [index, control] of sortButtons.entries()) {
-            if (index === column) control.parentElement.setAttribute('aria-sort', ascending ? 'ascending' : 'descending')
-            else control.parentElement.removeAttribute('aria-sort')
-        }
-        rows.sort(compareRows)
-        tableBody.append(...rows.map(row => row.element))
+        extraSort.value = ''
+        sortBy(button.dataset.sort, sortColumn === button.dataset.sort && !ascending)
     })
 }
+extraSort.addEventListener('change', () => {
+    const [column, direction] = extraSort.value.split(':')
+    sortBy(column || 'scan', direction !== 'desc')
+})
+
+function matchesFilters(row) {
+    return (activeFilter === 'all' || row.reasons.includes(activeFilter)) && row.searchText.includes(searchTerm)
+}
+
+function refilter() {
+    matches = 0
+    for (const row of rows) {
+        row.element.hidden = !matchesFilters(row)
+        if (!row.element.hidden) matches++
+    }
+    render()
+}
+
+for (const button of filterButtons) {
+    button.addEventListener('click', () => {
+        activeFilter = button.dataset.filter
+        refilter()
+    })
+}
+search.addEventListener('input', () => {
+    searchTerm = search.value.trim().toLowerCase()
+    refilter()
+})
 
 function currentReport() {
     const status = reportState.scanStatusSORS
@@ -175,7 +256,7 @@ function currentReport() {
         selectedView = undefined
     }
     const preferred = !live.length && ['stopped', 'error'].includes(status?.phase) ? 'saved' : 'live'
-    const showSaved = canSwitch && (selectedView ?? preferred) === 'saved'
+    const showSaved = status ? canSwitch && (selectedView ?? preferred) === 'saved' : hasSaved && !live.length
     return {
         mode: showSaved ? 'saved' : 'live',
         canSwitch,
@@ -199,12 +280,18 @@ function renderRows({ entries, affixes, key }) {
         renderedReport = identity
         renderedEntries = 0
         rows = []
+        matches = 0
+        filterCounts = { all: 0, below: 0, top: 0, missing: 0 }
     }
     const batch = document.createDocumentFragment()
     for (; renderedEntries < entries.length; renderedEntries++) {
         const entry = entries[renderedEntries]
         if (!Array.isArray(entry) || entry.length < 7) continue
         const row = createRow(entry, rows.length, money)
+        filterCounts.all++
+        for (const reason of row.reasons) filterCounts[reason]++
+        row.element.hidden = !matchesFilters(row)
+        if (!row.element.hidden) matches++
         if (sortColumn === undefined) {
             batch.appendChild(row.element)
             rows.push(row)
@@ -213,8 +300,13 @@ function renderRows({ entries, affixes, key }) {
         }
     }
     if (batch.childNodes.length) tableBody.appendChild(batch)
-    table.hidden = !rows.length
-    empty.hidden = !!rows.length
+    tableRegion.hidden = matches === 0
+    empty.hidden = matches > 0
+    for (const button of filterButtons) {
+        const key = button.dataset.filter
+        button.setAttribute('aria-pressed', String(key === activeFilter))
+        button.textContent = `${filterLabels[key]} ${filterCounts[key]}`
+    }
 }
 
 function render() {
@@ -232,15 +324,18 @@ function render() {
     }
     const total = Number(status?.total) || 0
     const checked = Math.max(0, Number(status?.checked) || 0)
-    const label = labels[status?.phase] || 'Ready to scan'
+    const previousEnd = reportState.scanEndTimeSORS
+    const legacyComplete = !status && reportState.scanProgressSORS === 100 && previousEnd && previousEnd !== 'N/A'
+    const label = labels[status?.phase] || (showSaved || legacyComplete ? 'Last completed scan' : 'Ready to scan')
     document.getElementById('scanStatus').textContent = total ? `${label} · ${checked} / ${total} orders` : label
     const currentItem = document.getElementById('scanCurrentItem')
     currentItem.hidden = !status?.itemName || !['scanning', 'retrying', 'stopping'].includes(status.phase)
     currentItem.textContent = status?.itemName || ''
 
     const counts = []
+    if (searchTerm || activeFilter !== 'all') counts.push(`${matches} of ${rows.length} shown`)
     if (status) {
-        counts.push(`${view.flagged} flagged`)
+        counts.push(`${showSaved ? 'Current scan · ' : ''}${view.flagged} flagged`)
         if (status.skipped) counts.push(`${status.skipped} skipped`)
         if (status.withoutSalePrice) counts.push(`${status.withoutSalePrice} without sale estimate`)
         if (status.canceled) counts.push(`${status.canceled} canceled`)
@@ -253,7 +348,9 @@ function render() {
     issue.textContent = status?.error || status?.recentIssues?.at(-1) || ''
     issue.hidden = !issue.textContent
 
-    if (showSaved || status?.phase === 'completed') {
+    if (rows.length && !matches) {
+        empty.textContent = 'No findings match your filters.'
+    } else if (showSaved || legacyComplete || status?.phase === 'completed') {
         empty.textContent = 'No orders matched the scan conditions.'
     } else if (activePhases.has(status?.phase)) {
         empty.textContent = 'No matching orders found yet.'
@@ -270,9 +367,9 @@ function render() {
         Number(reportState.scanProgressSORS) || 0
     const percentage = Math.min(100, Math.max(0, value))
     const progress = document.getElementById('progress')
-    progress.style.width = `${percentage}%`
-    progress.style.color = reportState.scanErrorSORS ? 'red' : '#0075ff'
-    progress.setAttribute('aria-valuenow', percentage)
+    progress.hidden = !status && percentage === 0
+    progress.value = percentage
+    progress.className = reportState.scanErrorSORS ? 'has-issues' : ''
 }
 
 chrome.storage.onChanged.addListener((changes, namespace) => {

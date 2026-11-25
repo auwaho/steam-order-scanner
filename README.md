@@ -11,7 +11,7 @@
   <a href="https://github.com/auwaho/steam-order-scanner/releases/latest">Direct download (GitHub release)</a>
 </h3>
 
-**Note: I highly recommend running your first scan with cancellation options disabled ("Cancel first in queue" and "Cancel if below (±%)") to make sure the extension works correctly for you. Compatibility checked with: Steam Inventory Helper, Steam Trader Helper, Augmented Steam.**
+**Note: I highly recommend running your first scan with cancellation options disabled ("Cancel at highest bid" and "Cancel below threshold") to make sure the extension works correctly for you. Compatibility checked with: Steam Inventory Helper, Steam Trader Helper, Augmented Steam.**
 
 ## Description
 
@@ -38,9 +38,9 @@ Steam Order Scanner (SORS) is a Chrome extension that helps keep your Steam Comm
 
 #### Extension features
 
--   **Steam Order Scanner panel** on the [Buy Orders page](https://steamcommunity.com/market/buyorders) scans all active buy orders without scrolling. Start and stop the scan, see the current item and progress, and collapse the panel when you need more room. Scan and market settings are in the extension popup.
--   **Live report** flags orders at the highest bid or below your profit threshold. The last completed report stays available. CS2 links open the scanned wear and category when available.
--   **Optional auto-cancellation** can act on any active buy order that meets your settings. "Cancel first in queue" matches Steam's highest bid. Steam does not show who is first among buyers at the same price.
+-   **Steam Order Scanner panel** on the [Buy Orders page](https://steamcommunity.com/market/buyorders) scans all active buy orders without scrolling. Start and stop the scan, see the current item, progress and orders to review, and collapse the panel when you need more room. The extension popup has settings and shortcuts to Steam and the report.
+-   **Live report** flags orders at the highest bid or below your profit threshold. Search, filter and sort the results, and compare your order price, break-even sale price, market sale price, proceeds after fees and estimated profit. The last completed report stays available. CS2 links open the scanned wear and category when available.
+-   **Optional auto-cancellation** can act on any active buy order that meets your settings. "Cancel at highest bid" matches Steam's highest bid. Steam does not show who is first among buyers at the same price.
 -   See **what the seller receives after fees** on supported item listings.
 -   **Show more orders** expands the buy and sell price tables for cases and other commodity items. For weapons and other items with variants, select the exact variant and open the buy-order table. The number of price levels is configurable in the popup.
 -   Show the **minimum resale price to recover the bid after fees** below each bid on the Buy Orders page.

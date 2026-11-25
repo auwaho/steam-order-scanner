@@ -1,53 +1,70 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
     <head>
         <meta charset="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <title>Steam Order Scanner :: Report</title>
-        <link rel="shortcut icon" href="../../ico/16.png" type="image/png" />
-
+        <title>Scan report · Steam Order Scanner</title>
+        <link rel="icon" href="../../ico/16.png" type="image/png" />
         <link rel="stylesheet" href="report.css" />
     </head>
-
     <body>
-        <header class="report-header">
-            <h1>Scan report</h1>
-        </header>
-        <main class="report-content">
-            <section class="scan-summary" aria-live="polite">
-                <p id="scanStatus">Ready to scan</p>
-                <p id="scanCurrentItem" class="scan-current-item" hidden></p>
+        <main class="report">
+            <header class="report-header">
+                <div class="report-heading">
+                    <img src="../../ico/48.png" alt="" width="30" height="30" />
+                    <div>
+                        <h1>Orders to review</h1>
+                        <p id="scanStatus" role="status">Ready to scan</p>
+                    </div>
+                </div>
                 <p id="scanCounts" class="scan-counts" hidden></p>
-                <p id="scanIssue" class="scan-issue" hidden></p>
-            </section>
+            </header>
+            <p id="scanCurrentItem" class="scan-current-item" hidden></p>
+            <p id="scanIssue" class="scan-issue" role="status" hidden></p>
+            <progress id="progress" max="100" value="0" aria-label="Scan progress" hidden></progress>
             <div id="reportView" class="report-view" hidden>
                 <span id="reportViewLabel"></span>
                 <button id="switchReport" type="button" aria-controls="reportResults"></button>
             </div>
-            <div id="reportResults">
-                <p id="emptyReport" class="empty-report">Start a scan to see orders that match the scan conditions.</p>
-                <table id="reportTable" aria-label="Orders at the highest bid or below the configured profit threshold" hidden>
-                    <thead>
-                        <tr>
-                            <th scope="col" style="width: 7%"><button type="button" aria-label="Order number">#</button></th>
-                            <th scope="col" style="width: 7%"><button type="button" aria-label="Application ID">APPID</button></th>
-                            <th scope="col" style="width: 43%"><button type="button" aria-label="Name">NAME</button></th>
-                            <th scope="col" style="width: 7%"><button type="button" aria-label="At highest buy price" title="At Steam's highest buy price. Queue order within the same price is unavailable.">1ST</button></th>
-                            <th scope="col" style="width: 12%"><button type="button" aria-label="Order price">ORDER</button></th>
-                            <th scope="col" style="width: 12%"><button type="button" aria-label="Market price">MARKET</button></th>
-                            <th scope="col" style="width: 12%"><button type="button" aria-label="Profit">PROFIT</button></th>
-                        </tr>
-                    </thead>
-                    <tbody id="badOrd"></tbody>
-                </table>
-            </div>
+            <section id="reportResults" aria-label="Review findings">
+                <div class="report-toolbar">
+                    <div id="filters" role="group" aria-label="Reason for review">
+                        <button type="button" data-filter="all" aria-pressed="true">All 0</button>
+                        <button type="button" data-filter="below" aria-pressed="false">Below target 0</button>
+                        <button type="button" data-filter="top" aria-pressed="false">Highest bid 0</button>
+                        <button type="button" data-filter="missing" aria-pressed="false">Unavailable 0</button>
+                    </div>
+                    <div class="report-tools">
+                        <input id="reportSearch" type="search" aria-label="Find item" placeholder="Find item" />
+                        <select id="extraSort" aria-label="Additional sort options">
+                            <option value="">More sorts</option>
+                            <option value="scan:asc">Scan order ↑</option>
+                            <option value="scan:desc">Scan order ↓</option>
+                            <option value="app:asc">App ID ↑</option>
+                            <option value="app:desc">App ID ↓</option>
+                            <option value="top:desc">Highest bids first</option>
+                            <option value="top:asc">Highest bids last</option>
+                        </select>
+                    </div>
+                </div>
+                <div id="tableRegion" class="table-scroll" role="region" aria-label="Order table" tabindex="0" hidden>
+                    <table id="reportTable" aria-label="Orders to review">
+                        <thead>
+                            <tr>
+                                <th scope="col"><button type="button" data-sort="item">Item</button></th>
+                                <th scope="col"><button type="button" data-sort="reason">Reason</button></th>
+                                <th scope="col"><button type="button" data-sort="order" title="Your bid, with the break-even sale price in parentheses.">Order</button></th>
+                                <th scope="col"><button type="button" data-sort="market" title="Market sale price, with your proceeds after fees in parentheses.">Market</button></th>
+                                <th scope="col"><button type="button" data-sort="profit" title="Estimated profit percentage, with the net profit in your wallet currency in parentheses.">Profit</button></th>
+                            </tr>
+                        </thead>
+                        <tbody id="badOrd"></tbody>
+                    </table>
+                </div>
+                <p id="emptyReport" class="empty-report" role="status">Start a scan to see orders that match the scan conditions.</p>
+            </section>
+            <footer>Last completed scan <span id="lastScan">Not yet completed</span></footer>
         </main>
-
-        <footer>
-            <p><b>LAST COMPLETED SCAN</b> <span id="lastScan">Not yet completed</span></p>
-            <hr id="progress" role="progressbar" aria-label="Scan progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" style="width: 0%; color: #0075ff" />
-        </footer>
-
         <script src="report.js"></script>
     </body>
 </html>

@@ -115,7 +115,7 @@
                 if (status) {
                     const finishedAt = Date.now()
                     await publish({ phase, error: message, retryAt: null, finishedAt,
-                        ...(phase === 'completed' ? { itemName: null } : {}) }, {
+                        ...(phase === 'completed' ? { itemName: null, itemAppId: null } : {}) }, {
                         scanErrorSORS: phase === 'error' || hasIssues(),
                         ...(phase === 'completed' ? {
                             scanProgressSORS: 100,
@@ -158,12 +158,12 @@
 
         const table = []
         const format = wallet ? getCurrencyPrefixSuffix(wallet.wallet_currency) : ['', '']
-        await publish({ phase: 'scanning', total: orders.length }, { scanPrefSuffSORS: format })
+        await publish({ phase: 'scanning', total: orders.length, flagged: 0 }, { scanPrefSuffSORS: format })
         console.log(`Steam Order Scanner: scanning ${orders.length} buy orders.`)
 
         for (const [i, order] of orders.entries()) {
             signal.throwIfAborted()
-            await publish({ phase: 'scanning', itemName: order.hash_name, retryAt: null, error: null })
+            await publish({ phase: 'scanning', itemName: order.hash_name, itemAppId: order.appid, retryAt: null, error: null })
             let result
             try {
                 result = await inspectOrder(order, wallet)
@@ -182,7 +182,7 @@
                 if (!tailSize) report.scanTableBadSORS = table
             }
 
-            await publish({ checked: i + 1, phase: 'scanning', retryAt: null, error: null }, {
+            await publish({ checked: i + 1, flagged: table.length, phase: 'scanning', retryAt: null, error: null }, {
                 ...report,
                 scanErrorSORS: hasIssues(),
                 scanProgressSORS: ((i + 1) / orders.length) * 100
@@ -320,8 +320,7 @@
             const amount = (value) => (value / 100).toFixed(2)
             reportRow = [appId, itemName, amount(bid), fees ? amount(fees.buyPriceFor(bid)) : null,
                 saleError ? null : amount(net), saleError ? null : amount(fees.buyPriceFor(net)), first]
-            const variant = prices.getReportVariant()
-            if (variant) reportRow.push(variant)
+            reportRow.push({ ...prices.getReportVariant(), belowThreshold: unprofitable })
         }
         return { first, firstConfirmed: prices.firstConfirmed, unprofitable, reportRow, saleError }
     }

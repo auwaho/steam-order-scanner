@@ -1,107 +1,112 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
     <head>
         <meta charset="UTF-8" />
-        <meta http-equiv="X-UA-Compatible" content="IE=edge" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <link rel="stylesheet" href="popup.css" />
         <title>Steam Order Scanner</title>
     </head>
 
     <body>
-        <h1 style="display: none">Steam Order Scanner</h1>
+        <header class="header">
+            <h1>Settings</h1>
+            <nav class="header-actions" aria-label="Extension pages">
+                <a href="../report/report.html" target="_blank" rel="noopener">Report</a>
+                <a class="primary-action" href="https://steamcommunity.com/market/buyorders" target="_blank" rel="noopener"
+                    >Steam <span aria-hidden="true">↗</span></a>
+            </nav>
+        </header>
 
-        <div class="header">
-            <p class="header__text">
-                <a href="https://steamcommunity.com/market/buyorders" target="_blank">Open scanner on Steam</a>
-            </p>
-        </div>
-
-        <div class="settings">
-            <div class="settings__block">
-                <div class="title">
-                    <h2 class="title__text">Scan options</h2>
-                    <p
-                        class="title__help"
-                        title=">
-    Scan options:
-        • Auto-cancellation applies to all active buy orders when enabled.
-        • Cancel first in queue — mark and optionally cancel an order whose price matches Steam's highest bid. Queue order within the same price is unavailable.
-        • Cancel if below (±%) — mark and cancel (if enabled) when profit percent is below the threshold.
-        • Pause on errors (min) — wait after six failed item page requests before repeating the cycle.
-        • Per-order delay (ms) — base delay between orders.
-        • Random delay (+%) — maximum extra delay as a percentage of the base.
-    _"
-                    >
-                        ?
-                    </p>
-                </div>
-
+        <main class="settings">
+            <section class="settings-block" aria-labelledby="scan-options">
+                <h2 id="scan-options">Scan options</h2>
                 <div class="setting">
-                    <label class="container"
-                        >Cancel first in queue
-                        <input type="checkbox" id="cancelFirstOrders" name="cancelFirstOrders" unchecked />
-                        <span class="checkmark"></span>
-                    </label>
+                    <div class="setting-label">
+                        <label for="cancelHighPercent">Profit threshold</label>
+                        <button class="help" type="button" aria-label="About the profit threshold"
+                            data-help="Orders below this percentage appear in the report even when auto-cancel is off.">?</button>
+                    </div>
+                    <div class="setting-controls">
+                        <div class="unit-field">
+                            <input type="number" id="cancelHighPercent" min="-9999" max="9999" step="any" value="0" placeholder="0" aria-describedby="threshold-unit" />
+                            <span id="threshold-unit">%</span>
+                        </div>
+                    </div>
                 </div>
-
                 <div class="setting">
-                    <label class="container"
-                        >Cancel if below (&plusmn;%)
-                        <input type="checkbox" id="cancelHighOrders" name="cancelHighOrders" unchecked />
-                        <span class="checkmark"></span>
-                    </label>
-                    <input type="number" id="cancelHighPercent" min="-9999" max="9999" placeholder="0" />
+                    <div class="setting-label">
+                        <label for="cancelHighOrders">Cancel below threshold</label>
+                        <button class="help" type="button" aria-label="About cancelling below the threshold"
+                            data-help="Automatically cancels all active buy orders below your profit threshold.">?</button>
+                    </div>
+                    <input type="checkbox" id="cancelHighOrders" />
                 </div>
-
                 <div class="setting">
-                    <label>Pause on errors (min)</label>
-                    <input type="number" id="pauseOnErrors" min="0" max="9999" placeholder="2" />
+                    <div class="setting-label">
+                        <label for="cancelFirstOrders">Cancel at highest bid</label>
+                        <button class="help" type="button" aria-label="About cancelling at the highest bid"
+                            data-help="Automatically cancels bids at Steam's highest buy price, including ties. Applies to all active orders.">?</button>
+                    </div>
+                    <input type="checkbox" id="cancelFirstOrders" />
                 </div>
+                <div class="scan-timing">
+                    <div>
+                        <div class="setting-label">
+                            <label for="delayPerOrder">Order delay</label>
+                            <button class="help" type="button" aria-label="About order delay"
+                                data-help="Base delay between checks, in milliseconds.">?</button>
+                        </div>
+                        <div class="unit-field">
+                            <input type="number" id="delayPerOrder" min="0" max="9999" step="any" value="200" placeholder="200" aria-describedby="delay-unit" />
+                            <span id="delay-unit">ms</span>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="setting-label">
+                            <label for="delayRandom">Random delay</label>
+                            <button class="help" type="button" aria-label="About random delay"
+                                data-help="Maximum random delay to add, as a percentage of the base delay.">?</button>
+                        </div>
+                        <div class="unit-field">
+                            <input type="number" id="delayRandom" min="0" max="9999" step="any" value="50" placeholder="50" aria-describedby="random-unit" />
+                            <span id="random-unit">%</span>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="setting-label">
+                            <label for="pauseOnErrors">Error pause</label>
+                            <button class="help" type="button" aria-label="About the error pause"
+                                data-help="Wait this many minutes after several failed item page requests before retrying.">?</button>
+                        </div>
+                        <div class="unit-field">
+                            <input type="number" id="pauseOnErrors" min="0" max="9999" step="any" value="2" placeholder="2" aria-describedby="pause-unit" />
+                            <span id="pause-unit">min</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
 
+            <section class="settings-block" aria-labelledby="market-options">
+                <h2 id="market-options">Market options</h2>
                 <div class="setting">
-                    <label>Per-order delay (ms)</label>
-                    <input type="number" id="delayPerOrder" min="0" max="9999" placeholder="200" />
+                    <div class="setting-label">
+                        <label for="showMoreOrders">Show more orders</label>
+                        <button class="help" type="button" aria-label="About showing more orders"
+                            data-help="Sets the number of price levels shown per table on item pages. For variants, select the exact variant and open its buy table first.">?</button>
+                    </div>
+                    <div class="setting-controls">
+                        <input type="checkbox" id="showMoreOrders" checked />
+                        <div class="unit-field order-count-field">
+                            <input type="number" id="showMoreOrdersQty" min="1" max="9999" step="any" value="20" placeholder="20" aria-label="Number of price levels" />
+                            <span aria-hidden="true">levels</span>
+                        </div>
+                    </div>
                 </div>
+            </section>
+            <p id="settingsStatus" class="settings-status" role="status" hidden></p>
+        </main>
+        <div id="settingHelp" class="help-tooltip" role="tooltip" hidden></div>
 
-                <div class="setting">
-                    <label>Random delay (+%)</label>
-                    <input type="number" id="delayRandom" min="0" max="9999" placeholder="50" />
-                </div>
-            </div>
-
-            <div class="settings__block">
-                <div class="title">
-                    <h2 class="title__text">Market options</h2>
-                    <p
-                        class="title__help"
-                        title=">
-    Market options:
-        • Show more orders — expands the price tables for the selected item. For items with variants, select an exact variant and open the buy-order table.
-        
-    Also includes by default:
-        • Show lot prices without fee on item pages.
-        • Show sold in last 24h on the price graph.
-        • Show buy-order totals and scan progress in the Steam Order Scanner panel.
-        • Show totals on the Active Listings page.
-        • Show break-even prices on the Buy Orders page.
-    _"
-                    >
-                        ?
-                    </p>
-                </div>
-
-                <div class="setting">
-                    <label class="container"
-                        >Show more orders
-                        <input type="checkbox" id="showMoreOrders" name="showMoreOrders" checked />
-                        <span class="checkmark"></span>
-                    </label>
-                    <input type="number" id="showMoreOrdersQty" min="1" max="9999" placeholder="20" /><br />
-                </div>
-            </div>
-        </div>
-
-        <script type="text/javascript" src="popup.js"></script>
+        <script src="popup.js"></script>
     </body>
 </html>

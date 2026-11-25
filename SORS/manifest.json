@@ -1,7 +1,7 @@
 {
     "manifest_version": 3,
     "name": "Steam Order Scanner",
-    "version": "2.0.0",
+    "version": "3.0.0",
     "short_name": "SORS",
     "description": "Helps keep your Steam Market buy orders profitable and enhances market pages with useful features.",
     "icons": {

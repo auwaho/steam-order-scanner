@@ -5,6 +5,16 @@ var SORSScanPanel = (() => {
 
     const panelId = 'sors-scan-panel'
     const activePhases = new Set(['loading', 'scanning', 'retrying', 'stopping'])
+    const phaseLabels = {
+        loading: 'Loading buy orders…',
+        scanning: 'Scanning buy orders',
+        retrying: 'Waiting on Steam',
+        stopping: 'Stopping…',
+        completed: 'Scan complete',
+        stopped: 'Scan stopped',
+        error: 'Scan could not finish'
+    }
+    const gameNames = new Map([[730, 'CS2'], [570, 'Dota 2'], [440, 'Team Fortress 2'], [753, 'Steam Community Items']])
 
     function createElement(tag, className, text) {
         const element = document.createElement(tag)
@@ -63,17 +73,20 @@ var SORSScanPanel = (() => {
         header.append(heading, controls)
 
         const summaryLine = createElement('div', 'sors-scan-summary')
+        const totalsLine = createElement('div', 'sors-scan-totals')
         const summaryText = createElement('span')
+        summaryText.setAttribute('aria-live', 'polite')
         const refresh = createElement('button', 'sors-scan-refresh', 'Refresh')
         refresh.type = 'button'
         refresh.setAttribute('aria-label', 'Refresh buy order totals')
-        summaryLine.append(summaryText, refresh)
-        const cancellationNotice = createElement('div', 'sors-scan-cancellation-notice', 'Auto-cancel is enabled for all buy orders.')
+        const cancellationNotice = createElement('span', 'sors-scan-cancellation-notice')
+        totalsLine.append(summaryText, refresh)
+        summaryLine.append(totalsLine, cancellationNotice)
 
         const body = createElement('div', 'sors-scan-body')
         body.id = `${panelId}-body`
         const progressLine = createElement('div', 'sors-scan-progress-line')
-        const phaseText = createElement('span')
+        const phaseText = createElement('span', 'sors-scan-phase')
         phaseText.setAttribute('role', 'status')
         const countText = createElement('span', 'sors-scan-count')
         progressLine.append(phaseText, countText)
@@ -82,17 +95,20 @@ var SORSScanPanel = (() => {
         progress.value = 0
         progress.setAttribute('aria-label', 'Buy order scan progress')
         const currentItem = createElement('div', 'sors-scan-current')
-        const currentLabel = createElement('span', 'sors-scan-muted')
-        const currentName = createElement('span')
-        currentItem.append(currentLabel, currentName)
+        const item = createElement('span')
+        const currentName = createElement('strong')
+        const currentGame = createElement('span', 'sors-scan-muted')
+        const retry = createElement('span', 'sors-scan-retry')
+        item.append(currentName, currentGame)
+        currentItem.append(item, retry)
         const results = createElement('div', 'sors-scan-results')
         const issues = createElement('div', 'sors-scan-issues')
         const latestError = createElement('div', 'sors-scan-error')
         latestError.setAttribute('role', 'status')
         const issueList = createElement('ul')
         issues.append(latestError, issueList)
-        body.append(progressLine, progress, currentItem, results, issues)
-        panel.append(header, summaryLine, cancellationNotice, body)
+        body.append(summaryLine, progressLine, progress, currentItem, results, issues)
+        panel.append(header, body)
 
         function ensureMounted() {
             if (!active) return
@@ -107,25 +123,32 @@ var SORSScanPanel = (() => {
             const busy = activePhases.has(phase)
             const checked = Math.max(0, Number(status?.checked) || 0)
             const total = Math.max(0, Number(status?.total) || 0)
-            const labels = {
-                loading: 'Loading buy orders…',
-                scanning: 'Scanning buy orders',
-                retrying: 'Waiting to retry',
-                stopping: 'Stopping…',
-                completed: 'Scan complete',
-                stopped: 'Scan stopped',
-                error: 'Scan could not finish'
-            }
-            let label = labels[phase] || 'Ready to scan'
-            if (phase === 'retrying' && status.retryAt) {
-                const seconds = Math.max(0, Math.ceil((Number(status.retryAt) - Date.now()) / 1000))
-                if (seconds) label = `Retrying in ${seconds >= 60 ? `${Math.floor(seconds / 60)}m ${seconds % 60}s` : `${seconds}s`}`
+            const count = total || phase === 'completed' ? `${checked} / ${total}` : ''
+            const label = phaseLabels[phase] || 'Ready to scan'
+            const retryAt = Number(status?.retryAt)
+            const seconds = phase === 'retrying' && Number.isFinite(retryAt) ? Math.ceil((retryAt - Date.now()) / 1000) : 0
+            const retryTime = seconds >= 60 ? `${Math.floor(seconds / 60)}m ${seconds % 60}s` : seconds > 0 ? `${seconds}s` : ''
+            const autoCancel = cancelHighOrders || cancelFirstOrders
+            if (collapsed) {
+                const shortStatus = [retryTime ? `Retrying in ${retryTime}` : label]
+                if (count) shortStatus.push(count)
+                if (summary) {
+                    if (!count || summary.count !== total) shortStatus.push(`${summary.count} ${summary.orderLabel}`)
+                    if (summary.committed) shortStatus.push(`${summary.committed} committed`)
+                }
+                if (autoCancel) shortStatus.push('Auto-cancel on')
+                const failure = actionError || (phase === 'error' && status.error) ||
+                    (summaryError && 'Buy order totals unavailable')
+                if (failure) shortStatus.push(failure)
+                compactStatus.textContent = shortStatus.join(' · ')
+            } else {
+                compactStatus.textContent = ''
             }
             panel.dataset.phase = phase || 'idle'
-            compactStatus.textContent = collapsed ? `${label}${total ? ` · ${checked} / ${total}` : ''}` : ''
             compactStatus.hidden = !collapsed
-            phaseText.textContent = label
-            countText.textContent = total ? `${checked} / ${total}` : ''
+            if (phaseText.textContent !== label) phaseText.textContent = label
+            countText.textContent = count ? `${count} checked` : ''
+            countText.hidden = !count
             progress.max = total || 1
             if (phase === 'loading') progress.removeAttribute('value')
             else progress.value = phase === 'completed' && !total ? 1 : Math.min(checked, total || 1)
@@ -138,19 +161,21 @@ var SORSScanPanel = (() => {
             start.disabled = !!pendingAction || summaryLoading
             stop.disabled = !!pendingAction || phase === 'stopping'
             refresh.disabled = summaryLoading || busy || !!pendingAction
-            cancellationNotice.hidden = !cancelHighOrders && !cancelFirstOrders
-
-            if (summaryLoading && !summary) summaryText.textContent = 'Loading buy order totals…'
-            else if (summary) summaryText.textContent = summary
-            else summaryText.textContent = summaryError || 'Buy order totals unavailable'
-            summaryLine.classList.toggle('sors-scan-summary-error', !!summaryError)
+            cancellationNotice.classList.toggle('is-enabled', autoCancel)
+            cancellationNotice.textContent = autoCancel ? 'Auto-cancel on for all buy orders' : 'Auto-cancel off'
             refresh.textContent = summaryLoading ? 'Refreshing…' : 'Refresh'
 
             const itemName = status?.itemName
-            currentItem.hidden = !itemName
-            currentLabel.textContent = busy ? 'Current item · ' : 'Last item · '
+            const appId = Number(status?.itemAppId)
+            currentItem.hidden = !itemName && !retryTime
+            item.hidden = !itemName
             currentName.textContent = itemName || ''
+            currentGame.textContent = itemName && appId > 0 ? ` · ${gameNames.get(appId) ?? `App ${appId}`}` : ''
+            retry.textContent = retryTime ? `Next attempt in ${retryTime}` : ''
+            retry.hidden = !retryTime
             const resultParts = []
+            const flagged = Number(status?.flagged)
+            if (flagged > 0) resultParts.push(`${flagged} ${flagged === 1 ? 'order' : 'orders'} to review`)
             if (Number(status?.canceled)) resultParts.push(`Canceled: ${status.canceled}`)
             if (Number(status?.skipped)) resultParts.push(`Skipped: ${status.skipped}`)
             if (Number(status?.withoutSalePrice)) resultParts.push(`Sale price unavailable: ${status.withoutSalePrice}`)
@@ -158,8 +183,9 @@ var SORSScanPanel = (() => {
             results.textContent = resultParts.join(' · ')
             results.hidden = !resultParts.length
 
-            latestError.textContent = actionError || status?.error || summaryError || ''
-            latestError.hidden = !latestError.textContent
+            const error = actionError || status?.error || ''
+            if (latestError.textContent !== error) latestError.textContent = error
+            latestError.hidden = !error
             const recentIssues = Array.isArray(status?.recentIssues) ? status.recentIssues.slice(-3) : []
             const issueSignature = JSON.stringify(recentIssues)
             if (issueList.dataset.signature !== issueSignature) {
@@ -169,7 +195,7 @@ var SORSScanPanel = (() => {
             issueList.hidden = !recentIssues.length
             issues.hidden = latestError.hidden && issueList.hidden
             clearTimeout(retryTimer)
-            if (phase === 'retrying' && status.retryAt) retryTimer = setTimeout(render, 1000)
+            if (retryTime) retryTimer = setTimeout(render, 1000)
         }
 
         function setSummary(data) {
@@ -184,8 +210,18 @@ var SORSScanPanel = (() => {
                     totals.set(currency, (totals.get(currency) || 0) + amount)
                 }
                 const committed = [...totals].map(([currency, amount]) => formatSteamMoney(amount, currency)).join(' + ')
-                summary = `Buy orders: ${data.total ?? data.orders.length}${committed ? ` · Total committed: ${committed}` : ''}`
+                const count = data.total ?? data.orders.length
+                summary = { count, committed, orderLabel: count === 1 ? 'buy order' : 'buy orders' }
             }
+            if (summary) {
+                const parts = [createElement('strong', null, String(summary.count)), ` ${summary.orderLabel}`]
+                if (summary.committed) parts.push(' · ', createElement('strong', null, summary.committed), ' committed')
+                summaryText.replaceChildren(...parts)
+            } else {
+                summaryText.textContent = summaryLoading ? 'Loading buy order totals…' :
+                    summaryError || 'Buy order totals unavailable'
+            }
+            totalsLine.classList.toggle('sors-scan-summary-error', !!summaryError)
             render()
         }
 
@@ -265,7 +301,6 @@ var SORSScanPanel = (() => {
         })
         observer.observe(document.body, { childList: true, subtree: true })
         ensureMounted()
-        render()
         setSummary(undefined)
 
         function dispose() {

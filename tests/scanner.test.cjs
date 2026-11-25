@@ -209,7 +209,11 @@ test('ordinary item HTML keeps its original retry cadence', async () => {
     await s.tab.start()
     await s.finished()
     assert.deepEqual(s.delays, [5000, 10000, 10000, 10000, 10000, 120000, 5000])
+    const { scanStatusSORS: firstRetry } = s.writes.find((update) => update.scanStatusSORS?.phase === 'retrying')
+    assert.equal(firstRetry.itemName, 'Item 1')
+    assert.equal(firstRetry.itemAppId, 570)
     assert.equal(s.local.scanStatusSORS.checked, 1)
+    assert.equal(s.local.scanStatusSORS.itemAppId, null)
 })
 
 for (const action of ['stop', 'timeout', 'close']) {
@@ -265,6 +269,24 @@ test('last complete report migrates, survives startup HTTP 429, and changes only
     assert.deepEqual(saved.currencyAffixes, ['$', ''])
     assert.equal(saved.runId, s.local.scanStatusSORS.runId)
     assert.equal(saved.finishedAt, s.local.scanStatusSORS.finishedAt)
+})
+
+test('reports both matching reasons independently and counts each flagged order once', async () => {
+    const quotes = [[100, 200], [100, 90], [125, 90], [100, 0], [125, 200]]
+    const s = scanner({ orders: quotes.map((_, index) => order(index + 1)),
+        onItem: (name, index) => response(itemPage(name, ...quotes[index - 1])) })
+    await s.tab.start()
+    await s.finished()
+    assert.equal(s.local.scanStatusSORS.checked, 5)
+    assert.equal(s.local.scanStatusSORS.flagged, 4)
+    assert.equal(s.local.scanStatusSORS.withoutSalePrice, 1)
+    assert.deepEqual(s.local.scanLastCompletedSORS.rows.map((row) => [row[1], row[6], row[7].belowThreshold]), [
+        ['Item 1', true, false],
+        ['Item 2', true, true],
+        ['Item 3', false, true],
+        ['Item 4', true, null]
+    ])
+    assert.equal(s.posts.length, 0)
 })
 
 test('Stop keeps both the last complete report and every row checked in this run', async () => {

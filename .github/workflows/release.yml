@@ -1,0 +1,93 @@
+name: Build extension release
+
+on:
+  push:
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+'
+
+permissions: {}
+
+concurrency:
+  group: extension-release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    if: ${{ !github.event.deleted }}
+    runs-on: windows-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Check out tagged sources
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Check extension version
+        shell: pwsh
+        run: |
+          $version = (Get-Content -Raw -LiteralPath 'SORS/manifest.json' | ConvertFrom-Json).version
+          if ($env:GITHUB_REF_NAME -cne "v$version") {
+              throw "Tag '$env:GITHUB_REF_NAME' does not match extension version '$version'."
+          }
+
+      - name: Set up Node.js
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '24'
+          package-manager-cache: false
+
+      - name: Run regression tests
+        run: node --test
+
+      - name: Build release ZIP
+        shell: pwsh
+        run: ./scripts/package-extension.ps1
+
+      - name: Store release ZIP
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: extension-release
+          path: SORS.zip
+          if-no-files-found: error
+          compression-level: 0
+          overwrite: true
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download release ZIP
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: extension-release
+          path: release
+
+      - name: Publish GitHub Release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $archive = 'release/SORS.zip'
+          if (!(Test-Path -LiteralPath $archive -PathType Leaf) -or (Get-Item -LiteralPath $archive).Length -eq 0) {
+              throw 'The release ZIP is missing or empty.'
+          }
+
+          $tag = $env:GITHUB_REF_NAME
+          $repository = $env:GITHUB_REPOSITORY
+          $releaseJson = gh release view $tag --repo $repository --json 'isDraft,assets' 2>$null
+          if ($LASTEXITCODE -ne 0) {
+              gh release create $tag $archive --repo $repository --verify-tag --generate-notes
+          } else {
+              $release = $releaseJson | ConvertFrom-Json
+              if ('SORS.zip' -cnotin $release.assets.name) {
+                  gh release upload $tag $archive --repo $repository
+                  if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+              }
+              if ($release.isDraft) {
+                  gh release edit $tag --repo $repository --draft=false --verify-tag
+              }
+          }
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
