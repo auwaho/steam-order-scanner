@@ -44,7 +44,7 @@ try {
     try {
         $sourceFiles = Get-ChildItem -LiteralPath $extensionRoot -Recurse -File | Sort-Object FullName
         foreach ($file in $sourceFiles) {
-            $entry = 'SORS/' + $file.FullName.Substring($extensionBoundary.Length).Replace('\', '/')
+            $entry = $file.FullName.Substring($extensionBoundary.Length).Replace('\', '/')
             [IO.Compression.ZipFileExtensions]::CreateEntryFromFile($building, $file.FullName, $entry, 'Optimal') | Out-Null
         }
     } finally {
@@ -54,7 +54,7 @@ try {
     try {
         $entries = $archive.Entries.FullName
         foreach ($relativePath in $manifestFiles) {
-            $entry = 'SORS/' + $relativePath.Replace('\', '/')
+            $entry = $relativePath.Replace('\', '/')
             if ($entry -cnotin $entries) {
                 throw "Missing archive entry: $entry"
             }
