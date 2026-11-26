@@ -17,15 +17,13 @@
                         <p id="scanStatus" role="status">Ready to scan</p>
                     </div>
                 </div>
-                <p id="scanCounts" class="scan-counts" hidden></p>
+                <div class="report-actions">
+                    <button id="switchReport" type="button" aria-controls="reportResults" hidden></button>
+                    <p id="scanCounts" class="scan-counts" hidden></p>
+                </div>
             </header>
-            <p id="scanCurrentItem" class="scan-current-item" hidden></p>
             <p id="scanIssue" class="scan-issue" role="status" hidden></p>
             <progress id="progress" max="100" value="0" aria-label="Scan progress" hidden></progress>
-            <div id="reportView" class="report-view" hidden>
-                <span id="reportViewLabel"></span>
-                <button id="switchReport" type="button" aria-controls="reportResults"></button>
-            </div>
             <section id="reportResults" aria-label="Review findings">
                 <div class="report-toolbar">
                     <div id="filters" role="group" aria-label="Reason for review">

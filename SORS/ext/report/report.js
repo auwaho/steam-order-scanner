@@ -59,8 +59,6 @@ const search = document.getElementById('reportSearch')
 const extraSort = document.getElementById('extraSort')
 const tableRegion = document.getElementById('tableRegion')
 const empty = document.getElementById('emptyReport')
-const viewControls = document.getElementById('reportView')
-const viewLabel = document.getElementById('reportViewLabel')
 const viewButton = document.getElementById('switchReport')
 
 function getListingUrl(appId, hashName, metadata) {
@@ -293,7 +291,6 @@ function currentReport() {
     return {
         mode: showSaved ? 'saved' : 'live',
         canSwitch,
-        flagged: live.length,
         entries: showSaved ? saved.rows : live,
         affixes: showSaved ? saved.currencyAffixes : reportState.scanPrefSuffSORS,
         key: showSaved ? `saved:${saved.runId ?? saved.finishedAt}` : `live:${status?.runId ?? ''}`
@@ -340,6 +337,7 @@ function renderRows({ entries, affixes, key }) {
         const key = button.dataset.filter
         button.setAttribute('aria-pressed', String(key === activeFilter))
         button.textContent = `${filterLabels[key]} ${filterCounts[key]}`
+        button.title = button.textContent
     }
 }
 
@@ -348,8 +346,7 @@ function render() {
     const view = currentReport()
     const showSaved = view.mode === 'saved'
     renderRows(view)
-    viewControls.hidden = !view.canSwitch
-    viewLabel.textContent = showSaved ? 'Showing last completed report' : 'Showing current scan'
+    viewButton.hidden = !view.canSwitch
     viewButton.textContent = showSaved ? 'View current scan' : 'View last completed report'
 
     const labels = {
@@ -361,15 +358,19 @@ function render() {
     const previousEnd = reportState.scanEndTimeSORS
     const legacyComplete = !status && reportState.scanProgressSORS === 100 && previousEnd && previousEnd !== 'N/A'
     const label = labels[status?.phase] || (showSaved || legacyComplete ? 'Last completed scan' : 'Ready to scan')
-    document.getElementById('scanStatus').textContent = total ? `${label} · ${checked} / ${total} orders` : label
-    const currentItem = document.getElementById('scanCurrentItem')
-    currentItem.hidden = !status?.itemName || !['scanning', 'retrying', 'stopping'].includes(status.phase)
-    currentItem.textContent = status?.itemName || ''
+    const statusLine = document.getElementById('scanStatus')
+    let statusText = total ? `${label} · ${checked} / ${total} orders` : label
+    if (status?.itemName && ['scanning', 'retrying', 'stopping'].includes(status.phase)) {
+        statusText += ` · ${status.itemName}`
+    }
+    if (statusLine.textContent !== statusText) {
+        statusLine.textContent = statusText
+        statusLine.title = statusText
+    }
 
     const counts = []
     if (searchTerm || activeFilter !== 'all') counts.push(`${matches} of ${rows.length} shown`)
     if (status) {
-        counts.push(`${showSaved ? 'Current scan · ' : ''}${view.flagged} flagged`)
         if (status.skipped) counts.push(`${status.skipped} skipped`)
         if (status.withoutSalePrice) counts.push(`${status.withoutSalePrice} without sale estimate`)
         if (status.canceled) counts.push(`${status.canceled} canceled`)
@@ -378,8 +379,10 @@ function render() {
     const countLine = document.getElementById('scanCounts')
     countLine.hidden = counts.length === 0
     countLine.textContent = counts.join(' · ')
+    countLine.title = countLine.textContent
     const issue = document.getElementById('scanIssue')
     issue.textContent = status?.error || status?.recentIssues?.at(-1) || ''
+    issue.title = issue.textContent
     issue.hidden = !issue.textContent
 
     if (rows.length && !matches) {
@@ -396,7 +399,9 @@ function render() {
 
     const savedAt = reportState.scanLastCompletedSORS?.finishedAt
     const endTime = typeof savedAt === 'number' ? new Date(savedAt).toLocaleString() : savedAt || reportState.scanEndTimeSORS
-    document.getElementById('lastScan').textContent = endTime && endTime !== 'N/A' ? endTime : 'Not yet completed'
+    const lastScan = document.getElementById('lastScan')
+    lastScan.textContent = endTime && endTime !== 'N/A' ? endTime : 'Not yet completed'
+    lastScan.title = lastScan.textContent
     const value = status ? (status.phase === 'completed' ? 100 : total ? checked / total * 100 : 0) :
         Number(reportState.scanProgressSORS) || 0
     const percentage = Math.min(100, Math.max(0, value))

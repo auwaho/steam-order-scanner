@@ -21,13 +21,22 @@
 
 const inputs = [...document.querySelectorAll('.settings input')]
 const changedBeforeLoad = new Set()
+const storedValues = new Map()
+const pendingWrites = new Map()
+const failedSettings = new Set()
 const settingStatus = document.getElementById('settingsStatus')
 const quantity = document.getElementById('showMoreOrdersQty')
 const showMore = document.getElementById('showMoreOrders')
+const autoCancelInputs = inputs.filter(({ id }) => id === 'cancelHighOrders' || id === 'cancelFirstOrders')
 let initialReadComplete = false
+let initialReadFailed = false
+let storageError = ''
 
-function showStorageError(message) {
-    settingStatus.textContent = message
+function showStorageStatus() {
+    let message = storageError
+    if (initialReadFailed) message = 'Settings could not be loaded. Reopen the popup to try again.'
+    else if (failedSettings.size) message = 'Auto-cancel settings could not be saved. Previous values restored. Try changing them again.'
+    if (settingStatus.textContent !== message) settingStatus.textContent = message
     settingStatus.hidden = !message
 }
 
@@ -37,31 +46,53 @@ function showSetting(input, value) {
     quantity.disabled = !showMore.checked
 }
 
+function confirmSetting(input, value) {
+    if (autoCancelInputs.includes(input)) storedValues.set(`${input.id}SORS`, value)
+    showSetting(input, value)
+}
+
+function updateDisabled() {
+    for (const input of autoCancelInputs) {
+        input.disabled = !initialReadComplete || initialReadFailed || pendingWrites.has(`${input.id}SORS`)
+    }
+}
+
 chrome.storage.onChanged.addListener((changes, namespace) => {
     if (namespace !== 'local') return
     for (const input of inputs) {
         const key = `${input.id}SORS`
         const change = changes[key]
         if (!initialReadComplete && change) changedBeforeLoad.add(key)
-        if (change) showSetting(input, change.newValue)
+        if (change) {
+            confirmSetting(input, change.newValue)
+            if (pendingWrites.has(key)) pendingWrites.get(key).observedChange = true
+            failedSettings.delete(key)
+        }
     }
+    updateDisabled()
+    showStorageStatus()
 })
 
+updateDisabled()
 void chrome.storage.local.get(inputs.map(({ id }) => `${id}SORS`)).then((stored) => {
     for (const input of inputs) {
         const key = `${input.id}SORS`
-        if (!changedBeforeLoad.has(key)) showSetting(input, stored[key])
+        if (!changedBeforeLoad.has(key)) confirmSetting(input, stored[key])
     }
 }).catch(() => {
-    showStorageError('Settings could not be loaded. Reopen the popup to try again.')
+    initialReadFailed = true
+    showStorageStatus()
 }).finally(() => {
     initialReadComplete = true
     changedBeforeLoad.clear()
+    updateDisabled()
 })
 
 for (const input of inputs) {
     input.addEventListener('change', () => {
         const key = `${input.id}SORS`
+        const autoCancel = autoCancelInputs.includes(input)
+        if (autoCancel && (!initialReadComplete || initialReadFailed || pendingWrites.has(key))) return
         if (!initialReadComplete) changedBeforeLoad.add(key)
         let value = input.checked
         if (input.type !== 'checkbox') {
@@ -70,11 +101,22 @@ for (const input of inputs) {
                 Number.isFinite(parsed) ? parsed : Number(input.defaultValue)))
             input.value = value
         }
+        const pending = { observedChange: false }
+        if (autoCancel) pendingWrites.set(key, pending)
         quantity.disabled = !showMore.checked
+        updateDisabled()
         void chrome.storage.local.set({ [key]: value }).then(() => {
-            showStorageError('')
+            if (autoCancel && !pending.observedChange) confirmSetting(input, value)
+            failedSettings.delete(key)
+            storageError = ''
         }).catch(() => {
-            showStorageError('Settings could not be saved. Reopen the popup to try again.')
+            if (autoCancel) failedSettings.add(key)
+            else storageError = 'Settings could not be saved. Reopen the popup to try again.'
+        }).finally(() => {
+            if (autoCancel) showSetting(input, storedValues.get(key))
+            pendingWrites.delete(key)
+            updateDisabled()
+            showStorageStatus()
         })
     })
 }

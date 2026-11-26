@@ -99,9 +99,15 @@ test('a failed scan can show the last completed report without hiding the curren
     assert.equal(report.getElementById('lastScan').textContent, 'Yesterday')
     assert.equal(rowName(report.rows[0]), 'Saved')
     assert.equal(report.rows[0].children[2].textContent, '1.00₴')
-    report.getElementById('switchReport').click()
+    assert.equal(report.filter('all').textContent, 'All 1')
+    assert.equal(report.getElementById('scanCounts').hidden, true)
+    const switchReport = report.getElementById('switchReport')
+    assert.equal(switchReport.hidden, false)
+    assert.equal(switchReport.textContent, 'View current scan')
+    switchReport.click()
     assert.equal(report.rows.length, 0)
-    assert.equal(report.getElementById('reportViewLabel').textContent, 'Showing current scan')
+    assert.equal(report.filter('all').textContent, 'All 0')
+    assert.equal(switchReport.textContent, 'View last completed report')
 })
 
 test('a completed snapshot with no live report still shows its rows and its currency', () => {
@@ -109,8 +115,23 @@ test('a completed snapshot with no live report still shows its rows and its curr
         rows: [entry('Last item')], currencyAffixes: ['', '€'], finishedAt: 'Yesterday'
     } })
     assert.equal(report.getElementById('scanStatus').textContent, 'Last completed scan')
+    assert.equal(report.getElementById('switchReport').hidden, true)
     assert.deepEqual(report.visibleRows.map(rowName), ['Last item'])
     assert.equal(report.rows[0].children[2].textContent, '1.00€')
+})
+
+test('the status line includes the active item and clears it after the scan completes', () => {
+    const status = { runId: 'live', phase: 'scanning', checked: 1, total: 2, itemName: 'Dreams & Nightmares Case' }
+    const report = openReport({ scanStatusSORS: status })
+    const line = report.getElementById('scanStatus')
+    assert.equal(line.textContent, 'Scanning · 1 / 2 orders · Dreams & Nightmares Case')
+    assert.equal(line.title, line.textContent)
+
+    report.update({ scanStatusSORS: { ...status, itemName: null } })
+    assert.equal(line.textContent, 'Scanning · 1 / 2 orders')
+    report.update({ scanStatusSORS: { ...status, phase: 'completed', checked: 2 } })
+    assert.equal(line.textContent, 'Scan completed · 2 / 2 orders')
+    assert.equal(line.title, line.textContent)
 })
 
 test('incoming rows preserve sorting and existing row nodes', () => {
@@ -125,7 +146,8 @@ test('incoming rows preserve sorting and existing row nodes', () => {
     report.update({ scanStatusSORS: { ...status, checked: 3 }, scanTableTailSORS: [pending] })
     assert.deepEqual(report.rows.map(rowName), ['B', 'C', 'A'])
     assert.equal(report.rows[0], original)
-    assert.equal(report.getElementById('scanCounts').textContent, '3 flagged')
+    assert.equal(report.filter('all').textContent, 'All 3')
+    assert.equal(report.getElementById('scanCounts').hidden, true)
     report.update({ scanTableBadSORS: [...rows, pending], scanTableTailSORS: [] })
     assert.deepEqual(report.rows.map(rowName), ['B', 'C', 'A'])
     assert.equal(report.rows[0], original)
